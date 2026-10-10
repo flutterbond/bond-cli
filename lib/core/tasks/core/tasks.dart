@@ -1,36 +1,23 @@
 import 'package:bond_cli/core/utils.dart';
-import 'package:interact/interact.dart';
+import 'package:mason_logger/mason_logger.dart';
 import 'package:meta/meta.dart';
 
 import 'actionable.dart';
 import 'task.dart';
 
-abstract class Tasks with Actionable {
+abstract class Tasks with Actionable<void> {
   List<Task> get tasks;
-
-  final spinners = MultiSpinner();
 
   @override
   Future<void> run() async {
-    final mainSpinner = spinners.add(Spinner(
-      icon: '✅',
-      rightPrompt: (done) =>
-          done ? ' $actionDescription' : ' $actionDescription ...',
-    ));
-    try {
-      await execute();
-      mainSpinner.done();
-    } catch (error) {
-      ConsolePrinter.error(error.toString());
-      rethrow;
-    }
+    logger.info(styleBold.wrap(actionDescription));
+    await execute();
   }
 
   @protected
   @override
   Future<void> execute() async {
-    for (var task in tasks) {
-      task.spinners = spinners;
+    for (final task in tasks) {
       await task.run();
     }
   }

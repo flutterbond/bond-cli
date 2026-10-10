@@ -5,7 +5,8 @@ import 'package:bond_cli/core/validators.dart';
 
 import '../stubs/service_provider_template.dart';
 
-class CreateServiceProviderCommand extends Command<void> {
+class CreateServiceProviderCommand extends Command<void>
+    with InputResolver {
   @override
   String get name => 'service_provider';
 
@@ -21,12 +22,10 @@ class CreateServiceProviderCommand extends Command<void> {
   }
 
   @override
-  void run() async {
-    var serviceProviderName = argResults?['name'] as String?;
-
-    serviceProviderName ??= XInput.askValue(
-      'Enter Service Provider Name:',
-      null,
+  Future<void> run() async {
+    final serviceProviderName = resolveInput(
+      'name',
+      prompt: 'Enter Service Provider Name:',
       validators: [
         NonEmptyValidator(),
         PascalCaseValidator(),

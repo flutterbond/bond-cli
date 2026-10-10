@@ -1,5 +1,3 @@
-library tasks;
-
 export 'tasks/create_feature/create_model_tasks.dart';
 export 'tasks/create_project/android/setup_android_project_task.dart';
 export 'tasks/create_project/android/tasks/fix_import_task.dart';

@@ -8,7 +8,7 @@ import 'package:bond_cli/core/validators.dart';
 import 'package:native_project_manipulator/platforms/android/android.dart';
 import 'package:native_project_manipulator/platforms/ios/ios_manager.dart';
 
-class UpdateAppNameCommand extends Command<void> {
+class UpdateAppNameCommand extends Command<void> with InputResolver {
   @override
   String get name => 'app_name';
 
@@ -20,12 +20,10 @@ class UpdateAppNameCommand extends Command<void> {
   }
 
   @override
-  void run() async {
-    var appName = argResults?['name'] as String?;
-
-    appName ??= XInput.askValue(
-      'Enter New App Name:',
-      null,
+  Future<void> run() async {
+    final appName = resolveInput(
+      'name',
+      prompt: 'Enter New App Name:',
       validators: [
         NonEmptyValidator(),
       ],

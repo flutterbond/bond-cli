@@ -5,7 +5,7 @@ import 'package:bond_cli/core/validators.dart';
 
 import '../stubs/widget_template.dart';
 
-class CreateWidgetCommand extends Command<void> {
+class CreateWidgetCommand extends Command<void> with InputResolver {
   @override
   String get name => 'widget';
 
@@ -19,27 +19,20 @@ class CreateWidgetCommand extends Command<void> {
           abbr: 't',
           help:
               'Specify the type of the widget. Options: [stateless, stateful, consumer]',
+          allowed: ['stateless', 'stateful', 'consumer'],
           defaultsTo: 'stateless');
   }
 
   @override
-  void run() async {
-    var widgetName = argResults?['name'] as String?;
-    var widgetType = argResults?['type'] as String?;
-
-    widgetName ??= XInput.askValue(
-      'Enter Widget Name:',
-      null,
+  Future<void> run() async {
+    final widgetType = argResults?['type'] as String;
+    final widgetName = resolveInput(
+      'name',
+      prompt: 'Enter Widget Name:',
       validators: [
         NonEmptyValidator(),
         PascalCaseValidator(),
       ],
-    );
-
-    widgetType ??= XInput.askList<String>(
-      'Select widget type:',
-      ['stateless', 'stateful', 'consumer'],
-      defaultAnswer: 'stateless',
     );
 
     await CreateWidgetTask(

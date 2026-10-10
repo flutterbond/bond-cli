@@ -1,140 +1,95 @@
-import 'package:interact/interact.dart';
-
+import '../string_extensions.dart';
 import 'base_validator.dart';
+
+/// Dart reserved words; none of them can be a class, library or package name.
+const dartReservedWords = {
+  'assert', 'break', 'case', 'catch', 'class', 'const', 'continue', //
+  'default', 'do', 'else', 'enum', 'extends', 'false', 'final', 'finally',
+  'for', 'if', 'in', 'is', 'new', 'null', 'rethrow', 'return', 'super',
+  'switch', 'this', 'throw', 'true', 'try', 'var', 'void', 'while', 'with',
+};
+
+/// Java keywords; Android rejects them as application ID segments.
+const _javaKeywords = {
+  'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', //
+  'char', 'class', 'const', 'continue', 'default', 'do', 'double', 'else',
+  'enum', 'extends', 'false', 'final', 'finally', 'float', 'for', 'goto', 'if',
+  'implements', 'import', 'instanceof', 'int', 'interface', 'long', 'native',
+  'new', 'null', 'package', 'private', 'protected', 'public', 'return',
+  'short', 'static', 'strictfp', 'super', 'switch', 'synchronized', 'this',
+  'throw', 'throws', 'transient', 'true', 'try', 'void', 'volatile', 'while',
+};
 
 class NonEmptyValidator implements Validator<String> {
   @override
-  bool validate(String value) {
-    if (value.isEmpty) {
-      throw ValidationError('Value is required.');
-    }
-    return true;
-  }
+  String? validate(String value) =>
+      value.trim().isEmpty ? 'Value is required.' : null;
 }
 
 class PascalCaseValidator implements Validator<String> {
   @override
-  bool validate(String value) {
-    if (!value.startsWith(RegExp(r'^[A-Z][a-zA-Z]*$'))) {
-      throw ValidationError(
-          'Value should be in PascalCase. e.g. User or UserDetail');
-    }
-    return true;
-  }
+  String? validate(String value) =>
+      RegExp(r'^[A-Z][a-zA-Z0-9]*$').hasMatch(value)
+      ? null
+      : 'Value should be in PascalCase, e.g. User or UserDetail.';
 }
 
 class NotReservedWordValidator implements Validator<String> {
-  static const reservedWords = ['do', 'if', 'in', 'for', 'new', 'var'];
+  @override
+  String? validate(String value) => dartReservedWords.contains(value)
+      ? 'Value should not be a Dart reserved word.'
+      : null;
+}
+
+/// Accepts any input whose snake_case form is a valid Dart package or
+/// directory name, e.g. `my_app`, `My App` or `MyApp`.
+class SnakeCaseNameValidator implements Validator<String> {
+  final String label;
+
+  SnakeCaseNameValidator({this.label = 'Name'});
 
   @override
-  bool validate(String value) {
-    if (reservedWords.contains(value)) {
-      throw ValidationError('Value should not be a Dart reserved word.');
+  String? validate(String value) {
+    final name = value.toSnakeCase();
+    if (!RegExp(r'^[a-z][a-z0-9_]*$').hasMatch(name)) {
+      return '$label must start with a letter and contain only letters, '
+          'digits, spaces or underscores (got "$name").';
     }
-    return true;
+    if (dartReservedWords.contains(name)) {
+      return '$label "$name" is a Dart reserved word.';
+    }
+    return null;
   }
 }
 
-class ProjectNameValidator implements Validator<String> {
+class ProjectNameValidator extends SnakeCaseNameValidator {
+  ProjectNameValidator() : super(label: 'Project name');
+}
+
+/// iOS bundle IDs: alphanumerics, hyphens and periods, at least two segments.
+class IosBundleIdValidator implements Validator<String> {
   @override
-  bool validate(String value) {
-    final result = RegExp(r'[\^$*+?.()|{}\[\]\\]').hasMatch(value);
-    if (result) {
-      throw ValidationError('Project name cannot contain special characters');
-    }
-    return true;
-  }
+  String? validate(String value) =>
+      RegExp(r'^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$').hasMatch(value)
+      ? null
+      : 'Invalid iOS bundle ID: use at least two dot-separated segments '
+            'of letters, digits or hyphens, e.g. com.example.app.';
 }
 
-class BundleIdOrApplicationIdValidator implements Validator<String> {
-  final bool isIOS;
-
-  BundleIdOrApplicationIdValidator({this.isIOS = false});
-
+/// Android application IDs double as the Kotlin package name, so every
+/// segment must be a valid Java identifier.
+class AndroidAppIdValidator implements Validator<String> {
   @override
-  bool validate(String value) {
-    final result = RegExp(r'^[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)+$')
-        .hasMatch(value);
-    if (!result) {
-      throw ValidationError(
-          'Invalid ${isIOS ? 'Bundle Id' : 'Application Id'}');
+  String? validate(String value) {
+    if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$')
+        .hasMatch(value)) {
+      return 'Invalid Android application ID: use at least two dot-separated '
+          'segments that start with a letter, e.g. com.example.app.';
     }
-
-    return true;
-  }
-}
-
-class IosBundleIdValidator extends ReverseDnsValidator {
-  IosBundleIdValidator()
-      : super(reservedWords: [
-          "apple",
-          "com",
-          "net",
-          "edu",
-          "org",
-          "gov",
-          "mil",
-          "co",
-          "uk",
-          "us",
-          "ps",
-          "sa",
-          "ai",
-          "app",
-          "dev",
-          "io",
-          "me",
-          "tv",
-          "ws",
-        ]);
-}
-
-class AndroidAppIdValidator extends ReverseDnsValidator {
-  AndroidAppIdValidator()
-      : super(
-          allowUpperCase: true,
-        ); // Android application IDs can contain uppercase characters
-}
-
-class ReverseDnsValidator implements Validator<String> {
-  final List<String> reservedWords;
-  final bool allowUpperCase;
-
-  ReverseDnsValidator({
-    this.reservedWords = const [], // Default to an empty list
-    this.allowUpperCase = false, // Default to disallow uppercase
-  });
-
-  @override
-  bool validate(String value) {
-    var segments = value.split('.');
-
-    if (segments.length < 2) {
-      throw ValidationError(
-          'Must have at least two segments separated by dots.');
+    final keyword = value.split('.').where(_javaKeywords.contains).firstOrNull;
+    if (keyword != null) {
+      return 'Invalid Android application ID: "$keyword" is a Java keyword.';
     }
-
-    for (var segment in segments) {
-      if (!segment.contains(allowUpperCase
-          ? RegExp(r'^[a-zA-Z0-9]+$')
-          : RegExp(r'^[a-z0-9]+$'))) {
-        throw ValidationError(
-            'Each segment can only contain ${allowUpperCase ? "alphanumeric" : "lowercase alphanumeric"} characters.');
-      }
-
-      if (segment.startsWith(RegExp(r'[0-9]'))) {
-        throw ValidationError('Each segment must not start with a number.');
-      }
-
-      if (_isReservedWord(segment)) {
-        throw ValidationError('Contains reserved word: $segment.');
-      }
-    }
-
-    return true;
-  }
-
-  bool _isReservedWord(String segment) {
-    return reservedWords.contains(segment);
+    return null;
   }
 }

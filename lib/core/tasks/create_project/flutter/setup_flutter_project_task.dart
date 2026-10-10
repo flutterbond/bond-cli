@@ -1,7 +1,5 @@
 import 'package:bond_cli/core/tasks/core/task.dart';
 import 'package:bond_cli/core/tasks/core/tasks.dart';
-import 'package:bond_cli/core/tasks/create_project/flutter/tasks/format_project_task.dart';
-import 'package:bond_cli/core/tasks/create_project/flutter/tasks/pub_get_task.dart';
 import 'package:native_project_manipulator/platforms/flutter/flutter.dart';
 
 import 'tasks/update_project_name_task.dart';

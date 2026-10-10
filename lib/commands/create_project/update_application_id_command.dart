@@ -6,7 +6,8 @@ import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
 import 'package:native_project_manipulator/platforms/android/android.dart';
 
-class UpdateApplicationIdCommand extends Command<void> {
+class UpdateApplicationIdCommand extends Command<void>
+    with InputResolver {
   @override
   String get name => 'android_app_id';
 
@@ -19,12 +20,10 @@ class UpdateApplicationIdCommand extends Command<void> {
   }
 
   @override
-  void run() async {
-    var applicationId = argResults?['applicationId'] as String?;
-
-    applicationId ??= XInput.askValue(
-      'Enter New Android Application ID:',
-      null,
+  Future<void> run() async {
+    final applicationId = resolveInput(
+      'applicationId',
+      prompt: 'Enter New Android Application ID:',
       validators: [
         NonEmptyValidator(),
         AndroidAppIdValidator(),

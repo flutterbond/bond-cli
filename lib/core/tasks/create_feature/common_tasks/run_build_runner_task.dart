@@ -22,7 +22,9 @@ class RunBuildRunnerTask extends Task<void> {
       '--delete-conflicting-outputs',
       '--build-filter="$directoryPath*.dart"'
     ]);
-    ConsolePrinter.success(result.stdout);
-    ConsolePrinter.error(result.stderr);
+    logger.detail('${result.stdout}');
+    if (result.exitCode != 0) {
+      throw Exception('build_runner failed: ${result.stderr}');
+    }
   }
 }

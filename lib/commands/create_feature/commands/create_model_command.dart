@@ -5,7 +5,7 @@ import 'package:bond_cli/core/validators.dart';
 
 import '../stubs/model_template.dart';
 
-class CreateModelCommand extends Command<void> {
+class CreateModelCommand extends Command<void> with InputResolver {
   @override
   String get name => 'model';
 
@@ -35,29 +35,17 @@ class CreateModelCommand extends Command<void> {
   }
 
   @override
-  void run() async {
-    var modelName = argResults?['name'] as String?;
-    var isJsonSerializable = argResults?['jsonSerializable'] as bool?;
-    var isEquatable = argResults?['equatable'] as bool?;
-
-    modelName ??= XInput.askValue(
-      'Enter Model Name:',
-      null,
+  Future<void> run() async {
+    final isJsonSerializable = argResults?['jsonSerializable'] as bool? ?? true;
+    final isEquatable = argResults?['equatable'] as bool? ?? true;
+    final modelName = resolveInput(
+      'name',
+      prompt: 'Enter Model Name:',
       validators: [
         NonEmptyValidator(),
         PascalCaseValidator(),
         NotReservedWordValidator(),
       ],
-    );
-
-    isJsonSerializable ??= XInput.askYesNo(
-      'Do you want to make the model JsonSerializable?',
-      defaultAnswer: true,
-    );
-
-    isEquatable ??= XInput.askYesNo(
-      'Do you want to make the model Equatable?',
-      defaultAnswer: true,
     );
 
     await CreateModelTasks(

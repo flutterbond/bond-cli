@@ -6,7 +6,7 @@ import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
 import 'package:native_project_manipulator/platforms/ios/ios_manager.dart';
 
-class UpdateIOSBundleIdCommand extends Command<void> {
+class UpdateIOSBundleIdCommand extends Command<void> with InputResolver {
   @override
   String get name => 'ios_bundle_id';
 
@@ -20,16 +20,15 @@ class UpdateIOSBundleIdCommand extends Command<void> {
   }
 
   @override
-  void run() async {
-    final bundleId = argResults?['bundleId'] as String? ??
-        XInput.askValue(
-          'Enter New iOS Bundle ID:',
-          null,
-          validators: [
-            NonEmptyValidator(),
-            IosBundleIdValidator(),
-          ],
-        );
+  Future<void> run() async {
+    final bundleId = resolveInput(
+      'bundleId',
+      prompt: 'Enter New iOS Bundle ID:',
+      validators: [
+        NonEmptyValidator(),
+        IosBundleIdValidator(),
+      ],
+    );
 
     final projectDirectoryPath = Directory.current.path;
     final iosManager = IosManager(Directory('$projectDirectoryPath/ios'));

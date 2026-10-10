@@ -5,7 +5,7 @@ import 'package:bond_cli/core/validators.dart';
 
 import '../stubs/dto_template.dart';
 
-class CreateDtoCommand extends Command<void> {
+class CreateDtoCommand extends Command<void> with InputResolver {
   @override
   String get name => 'dto';
 
@@ -18,12 +18,10 @@ class CreateDtoCommand extends Command<void> {
   }
 
   @override
-  void run() async {
-    var dtoName = argResults?['name'] as String?;
-
-    dtoName ??= XInput.askValue(
-      'Enter DTO Name:',
-      null,
+  Future<void> run() async {
+    final dtoName = resolveInput(
+      'name',
+      prompt: 'Enter DTO Name:',
       validators: [NonEmptyValidator(), PascalCaseValidator()],
     );
 

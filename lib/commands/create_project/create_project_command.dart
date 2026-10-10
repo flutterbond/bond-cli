@@ -8,7 +8,7 @@ import 'package:native_project_manipulator/platforms/android/android_manager.dar
 import 'package:native_project_manipulator/platforms/flutter/flutter_manager.dart';
 import 'package:native_project_manipulator/platforms/ios/ios_manager.dart';
 
-class CreateProjectCommand extends Command {
+class CreateProjectCommand extends Command<void> with InputResolver {
   @override
   String get description => 'Creates a new Flutter Bond project';
 
@@ -34,39 +34,34 @@ class CreateProjectCommand extends Command {
   }
 
   @override
-  void run() async {
-    var projectName = argResults?['projectName'];
-    var iosBundleId = argResults?['bundleId'];
-    var androidApplicationId = argResults?['applicationId'];
-
-    projectName ??= XInput.askValue(
-      'Enter Project Name:',
-      'my_dream_project',
+  Future<void> run() async {
+    final projectName = resolveInput(
+      'projectName',
+      prompt: 'Enter Project Name:',
+      defaultValue: 'my_dream_project',
       validators: [
         ProjectNameValidator(),
       ],
     );
 
-    iosBundleId ??= XInput.askValue(
-      'Enter IOS Bundle Id:',
-      'sa.bond.com',
-      validators: [
-        BundleIdOrApplicationIdValidator(isIOS: true),
-      ],
+    final iosBundleId = resolveInput(
+      'bundleId',
+      prompt: 'Enter IOS Bundle Id:',
+      defaultValue: 'sa.bond.com',
+      validators: [IosBundleIdValidator()],
     );
 
-    androidApplicationId ??= XInput.askValue(
-      'Enter Android Application Id:',
-      'sa.bond.com',
-      validators: [
-        BundleIdOrApplicationIdValidator(isIOS: false),
-      ],
+    final androidApplicationId = resolveInput(
+      'applicationId',
+      prompt: 'Enter Android Application Id:',
+      defaultValue: 'sa.bond.com',
+      validators: [AndroidAppIdValidator()],
     );
 
     final appName = projectName.replaceAll(' ', '_').toLowerCase();
 
     final projectPath = '${Directory.current.path}/$projectName';
-    ConsolePrinter.info('Creating a "$appName" project at $projectPath');
+    logger.info('Creating a "$appName" project at $projectPath');
 
     final projectDirectory = await ProjectCloningTask(
       projectName: projectName,
@@ -83,7 +78,7 @@ class CreateProjectCommand extends Command {
         appName: appName,
       ).run();
     } else {
-      ConsolePrinter.warning('skip setup ios ios project for non mac os.');
+      logger.warn('skip setup ios ios project for non mac os.');
     }
 
     await SetupAndroidProjectTask(
