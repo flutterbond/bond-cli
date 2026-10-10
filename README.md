@@ -4,9 +4,7 @@ Bond CLI is a command-line tool for streamlining Flutter Bond app development.
 
 ## Requirements
 
-- Dart 3.13 or later (Flutter 3.47.7 or later). The template pins its Flutter
-  version in `.fvmrc`; when [FVM](https://fvm.app) is installed, Bond CLI runs
-  `flutter`/`dart` through it.
+- Dart 3.13 or later (Flutter 3.47.7 or later).
 - `git`
 
 ## Installation
@@ -88,6 +86,6 @@ This step ensures that your code changes are recognized during development.
 Run the checks with:
 
 ```bash
-fvm dart analyze
-fvm dart test
+dart analyze
+dart test
 ```
