@@ -26,13 +26,13 @@ class SetupFlutterProjectTask extends Tasks {
           flutterManager: flutterManager,
           projectName: projectName,
         ),
-        FormatProjectTask(
-          flutterManager: flutterManager,
-          appName: appName,
-        ),
-        PubGetTask(
-          flutterManager: flutterManager,
-          appName: appName,
-        ),
+        // FormatProjectTask(
+        //   flutterManager: flutterManager,
+        //   appName: appName,
+        // ),
+        // PubGetTask(
+        //   flutterManager: flutterManager,
+        //   appName: appName,
+        // ),
       ];
 }
