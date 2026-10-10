@@ -51,6 +51,14 @@ String _strings(String appName) =>
 </resources>
 ''';
 
+/// src/main only defines the notification channel name; app_name lives in
+/// the flavor source sets.
+const _mainStrings = '''
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel">Bond</string>
+</resources>''';
+
 void main() {
   group('Gradle', () {
     test('sets applicationId and namespace in build.gradle.kts', () {
@@ -82,6 +90,17 @@ void main() {
     );
 
     expect(xml, contains(r'''>Tom\'s &lt;App&gt; &amp; Co</string>'''));
+  });
+
+  test('drops the manifest package attribute of older templates', () {
+    expect(
+      removeManifestPackage(
+        '<manifest xmlns:android="http://schemas.android.com/apk/res/android"'
+        '\n    package="ps.app.bond">\n</manifest>\n',
+      ),
+      '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+      '\n</manifest>\n',
+    );
   });
 
   test('renames every package_name, keeping the staging suffix', () {
@@ -119,11 +138,14 @@ void main() {
             '        <activity android:name=".MainActivity" />\n'
             '    </application>\n</manifest>\n',
       );
-      write(
-        'android/app/src/debug/AndroidManifest.xml',
-        '<manifest xmlns:android="http://schemas.android.com/apk/res/android"'
-            '\n    package="ps.app.bond">\n</manifest>\n',
-      );
+      for (final sourceSet in ['debug', 'profile']) {
+        write(
+          'android/app/src/$sourceSet/AndroidManifest.xml',
+          '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+              '\n    <uses-permission android:name="android.permission.INTERNET"/>'
+              '\n</manifest>\n',
+        );
+      }
       write(
         'android/app/src/production/google-services.json',
         _googleServices('ps.app.bond'),
@@ -132,6 +154,7 @@ void main() {
         'android/app/src/staging/google-services.json',
         _googleServices('ps.app.bond.staging'),
       );
+      write('android/app/src/main/res/values/strings.xml', _mainStrings);
       write(
         'android/app/src/production/res/values/strings.xml',
         _strings('Bond'),
@@ -179,10 +202,6 @@ void main() {
               .readAsStringSync(),
           contains('"package_name": "$applicationId.staging"'),
         );
-        expect(
-          file('android/app/src/debug/AndroidManifest.xml').readAsStringSync(),
-          isNot(contains('package=')),
-        );
       });
     }
 
@@ -224,6 +243,10 @@ void main() {
         file('android/app/src/staging/res/values/strings.xml')
             .readAsStringSync(),
         contains('<string name="app_name">Acme Shop Staging</string>'),
+      );
+      expect(
+        file('android/app/src/main/res/values/strings.xml').readAsStringSync(),
+        _mainStrings,
       );
     });
   });

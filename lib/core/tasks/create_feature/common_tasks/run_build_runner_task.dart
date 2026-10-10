@@ -22,7 +22,6 @@ class RunBuildRunnerTask extends Task<void> {
       'run',
       'build_runner',
       'build',
-      '--delete-conflicting-outputs',
       '--build-filter=$outputPath',
     ]);
   }
