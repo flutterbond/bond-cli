@@ -1,20 +1,19 @@
-String widgetStub(String className, String type) {
-  switch (type) {
-    case 'stateful':
-      return _statefulWidgetStub(className);
-
-    case 'consumer':
-      return _consumerWidgetStub(className);
-
-    case 'stateless':
-    default:
-      return _statelessWidgetStub(className);
-  }
+/// Projects that depend on material_ui (the v2 template) import it instead
+/// of `package:flutter/material.dart`; it re-exports the widgets library.
+String widgetStub(String className, String type, {bool materialUi = false}) {
+  final materialImport = materialUi
+      ? "import 'package:material_ui/material_ui.dart';"
+      : "import 'package:flutter/material.dart';";
+  return switch (type) {
+    'stateful' => _statefulWidgetStub(className, materialImport),
+    'consumer' => _consumerWidgetStub(className, materialImport),
+    _ => _statelessWidgetStub(className, materialImport),
+  };
 }
 
-String _statelessWidgetStub(String name) {
+String _statelessWidgetStub(String name, String materialImport) {
   return '''
-import 'package:flutter/material.dart';
+$materialImport
 
 class $name extends StatelessWidget {
   const $name({super.key});
@@ -27,9 +26,9 @@ class $name extends StatelessWidget {
 ''';
 }
 
-String _statefulWidgetStub(String name) {
+String _statefulWidgetStub(String name, String materialImport) {
   return '''
-import 'package:flutter/material.dart';
+$materialImport
 
 class $name extends StatefulWidget {
   const $name({super.key});
@@ -47,10 +46,13 @@ class _${name}State extends State<$name> {
 ''';
 }
 
-String _consumerWidgetStub(String name) {
+String _consumerWidgetStub(String name, String materialImport) {
+  final imports = [
+    materialImport,
+    "import 'package:flutter_riverpod/flutter_riverpod.dart';",
+  ]..sort();
   return '''
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+${imports.join('\n')}
 
 class $name extends ConsumerWidget {
   const $name({super.key});

@@ -87,7 +87,7 @@ void main() {
     expect(stub, contains(r'_$UserDetailToJson(this)'));
   });
 
-  test('consumer widget stub uses flutter_riverpod', () {
+  test('widget stubs use flutter_riverpod, and material_ui if present', () {
     final stub = widgetStub('UserCard', 'consumer');
 
     expect(
@@ -96,6 +96,13 @@ void main() {
     );
     expect(stub, contains('class UserCard extends ConsumerWidget'));
     expect(stub, isNot(contains('hooks_riverpod')));
+    expect(
+      widgetStub('UserCard', 'stateless', materialUi: true),
+      allOf(
+        contains("import 'package:material_ui/material_ui.dart';"),
+        isNot(contains('package:flutter/material.dart')),
+      ),
+    );
   });
 
   test('service provider stub implements the bond_core 0.1.0 API', () {

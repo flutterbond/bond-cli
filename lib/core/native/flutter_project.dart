@@ -67,6 +67,12 @@ class FlutterProject {
 
   String? get name => readPubspecName(pubspec.readAsStringSync());
 
+  /// Whether `pubspec.yaml` lists [package] as a dependency of any kind.
+  bool dependsOn(String package) => RegExp(
+    '^[ \\t]+${RegExp.escape(package)}:',
+    multiLine: true,
+  ).hasMatch(pubspec.readAsStringSync());
+
   List<File> get _dartFiles => [
     for (final directory in _sourceDirectories)
       ...listFiles(

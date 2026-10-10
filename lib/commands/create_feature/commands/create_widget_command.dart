@@ -1,4 +1,5 @@
 import 'package:args/command_runner.dart';
+import 'package:bond_cli/core/native/flutter_project.dart';
 import 'package:bond_cli/core/tasks/create_feature/create_widget_task.dart';
 import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
@@ -47,7 +48,11 @@ class CreateWidgetCommand extends Command<void>
       projectDirectory: projectDirectory,
       widgetName: widgetName,
       feature: feature,
-      widgetContent: widgetStub(widgetName, widgetType),
+      widgetContent: widgetStub(
+        widgetName,
+        widgetType,
+        materialUi: FlutterProject(projectDirectory).dependsOn('material_ui'),
+      ),
     ).run();
   }
 }
