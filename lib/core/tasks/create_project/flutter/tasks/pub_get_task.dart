@@ -1,20 +1,18 @@
+import 'dart:io';
+
 import 'package:bond_cli/core/tasks/core/task.dart';
-import 'package:native_project_manipulator/platforms/flutter/flutter.dart';
+import 'package:bond_cli/core/utils/process.dart';
 
 class PubGetTask extends Task<void> {
-  final FlutterManager flutterManager;
-  final String appName;
+  final Directory projectDirectory;
 
-  PubGetTask({
-    required this.flutterManager,
-    required this.appName,
-  });
+  PubGetTask({required this.projectDirectory});
 
   @override
-  String get actionDescription => 'Flutter Pub get for $appName';
+  String get actionDescription => 'Run flutter pub get';
 
   @override
   Future<void> execute() async {
-    await flutterManager.pubGet();
+    await runFlutterTool(projectDirectory, 'flutter', ['pub', 'get']);
   }
 }

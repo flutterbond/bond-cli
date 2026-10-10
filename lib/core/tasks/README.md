@@ -66,7 +66,7 @@ class MySampleCommand extends Command<void> {
   String get description => 'Description of your command.';
 
   @override
-  void run() async {
+  Future<void> run() async {
     final myTask = MySampleTask();
     await myTask.run();
 

@@ -1,3 +1,4 @@
 abstract class Validator<T> {
-  bool validate(T value);
+  /// Returns an error message when [value] is invalid, otherwise `null`.
+  String? validate(T value);
 }

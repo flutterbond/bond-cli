@@ -1,51 +1,58 @@
 import 'package:args/command_runner.dart';
+import 'package:bond_cli/core/native/flutter_project.dart';
 import 'package:bond_cli/core/tasks/create_feature/create_widget_task.dart';
 import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
 
 import '../stubs/widget_template.dart';
+import 'feature_option.dart';
 
-class CreateWidgetCommand extends Command<void> {
+class CreateWidgetCommand extends Command<void>
+    with InputResolver, FeatureOption {
   @override
   String get name => 'widget';
 
   @override
-  String get description => 'Create a new Widget.';
+  String get description =>
+      'Create a widget in lib/features/<feature>/presentation/widgets/.';
 
   CreateWidgetCommand() {
     argParser
-      ..addOption('name', abbr: 'n', help: 'Specify the name of the widget.')
-      ..addOption('type',
-          abbr: 't',
-          help:
-              'Specify the type of the widget. Options: [stateless, stateful, consumer]',
-          defaultsTo: 'stateless');
+      ..addOption(
+        'name',
+        abbr: 'n',
+        help: 'Specify the name of the widget (PascalCase).',
+      )
+      ..addOption(
+        'type',
+        abbr: 't',
+        help: 'Specify the type of the widget; consumer uses flutter_riverpod.',
+        allowed: ['stateless', 'stateful', 'consumer'],
+        defaultsTo: 'stateless',
+      );
+    addFeatureOption();
   }
 
   @override
-  void run() async {
-    var widgetName = argResults?['name'] as String?;
-    var widgetType = argResults?['type'] as String?;
-
-    widgetName ??= XInput.askValue(
-      'Enter Widget Name:',
-      null,
-      validators: [
-        NonEmptyValidator(),
-        PascalCaseValidator(),
-      ],
+  Future<void> run() async {
+    final projectDirectory = requireFlutterProject();
+    final widgetType = argResults!['type'] as String;
+    final widgetName = resolveInput(
+      'name',
+      prompt: 'Enter Widget Name:',
+      validators: [NonEmptyValidator(), PascalCaseValidator()],
     );
-
-    widgetType ??= XInput.askList<String>(
-      'Select widget type:',
-      ['stateless', 'stateful', 'consumer'],
-      defaultAnswer: 'stateless',
-    );
+    final feature = resolveFeature(widgetName);
 
     await CreateWidgetTask(
+      projectDirectory: projectDirectory,
       widgetName: widgetName,
-      widgetType: widgetType,
-      widgetContent: widgetStub(widgetName, widgetType),
+      feature: feature,
+      widgetContent: widgetStub(
+        widgetName,
+        widgetType,
+        materialUi: FlutterProject(projectDirectory).dependsOn('material_ui'),
+      ),
     ).run();
   }
 }

@@ -6,13 +6,11 @@ class CompositeValidator<T> implements Validator<T> {
   CompositeValidator(this.validators);
 
   @override
-  bool validate(T value) {
-    for (var validator in validators) {
-      if (!validator.validate(value)) {
-        // This will throw if validation fails
-        return false;
-      }
+  String? validate(T value) {
+    for (final validator in validators) {
+      final error = validator.validate(value);
+      if (error != null) return error;
     }
-    return true;
+    return null;
   }
 }

@@ -1,14 +1,9 @@
-import 'dart:io';
-
 import 'package:args/command_runner.dart';
 import 'package:bond_cli/core/tasks.dart';
-import 'package:bond_cli/core/tasks/create_project/android/tasks/update_app_name_task_for_android.dart';
 import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
-import 'package:native_project_manipulator/platforms/android/android.dart';
-import 'package:native_project_manipulator/platforms/ios/ios_manager.dart';
 
-class UpdateAppNameCommand extends Command<void> {
+class UpdateAppNameCommand extends Command<void> with InputResolver {
   @override
   String get name => 'app_name';
 
@@ -20,28 +15,22 @@ class UpdateAppNameCommand extends Command<void> {
   }
 
   @override
-  void run() async {
-    var appName = argResults?['name'] as String?;
-
-    appName ??= XInput.askValue(
-      'Enter New App Name:',
-      null,
-      validators: [
-        NonEmptyValidator(),
-      ],
+  Future<void> run() async {
+    final projectDirectory = requireFlutterProject();
+    final appName = resolveInput(
+      'name',
+      prompt: 'Enter New App Name:',
+      validators: [NonEmptyValidator()],
     );
 
-    final projectDirectoryPath = Directory.current.path;
-
     await UpdateIOSAppNameTaskForIOS(
-      iosManager: IosManager(Directory('$projectDirectoryPath/ios')),
+      projectDirectory: projectDirectory,
       appName: appName,
-    ).execute();
+    ).run();
 
     await UpdateAppNameTaskForAndroid(
-      androidManager:
-          AndroidManager(Directory('$projectDirectoryPath/android')),
+      projectDirectory: projectDirectory,
       appName: appName,
-    ).execute();
+    ).run();
   }
 }

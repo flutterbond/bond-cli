@@ -1,69 +1,66 @@
-import 'package:bond_cli/core/utils.dart';
-
-String widgetStub(String name, String type) {
-  switch (type) {
-    case 'stateful':
-      return _statefulWidgetStub(name);
-
-    case 'consumer':
-      return _consumerWidgetStub(name);
-
-    case 'stateless':
-    default:
-      return _statelessWidgetStub(name);
-  }
+/// Projects that depend on material_ui (the v2 template) import it instead
+/// of `package:flutter/material.dart`; it re-exports the widgets library.
+String widgetStub(String className, String type, {bool materialUi = false}) {
+  final materialImport = materialUi
+      ? "import 'package:material_ui/material_ui.dart';"
+      : "import 'package:flutter/material.dart';";
+  return switch (type) {
+    'stateful' => _statefulWidgetStub(className, materialImport),
+    'consumer' => _consumerWidgetStub(className, materialImport),
+    _ => _statelessWidgetStub(className, materialImport),
+  };
 }
 
-String _statelessWidgetStub(String name) {
+String _statelessWidgetStub(String name, String materialImport) {
   return '''
-import 'package:flutter/material.dart';
+$materialImport
 
-class ${name.toTitleCase()} extends StatelessWidget {
-  const ${name.toTitleCase()}({super.key});
-  
+class $name extends StatelessWidget {
+  const $name({super.key});
+
   @override
   Widget build(BuildContext context) {
     return const Placeholder();
   }
 }
-'''
-      .trim();
+''';
 }
 
-String _statefulWidgetStub(String name) {
+String _statefulWidgetStub(String name, String materialImport) {
   return '''
-import 'package:flutter/material.dart';
+$materialImport
 
-class ${name.toTitleCase()} extends StatefulWidget {
-  const ${name.toTitleCase()}({super.key});
-  
+class $name extends StatefulWidget {
+  const $name({super.key});
+
   @override
-  State<${name.toTitleCase()}> createState() => _${name.toTitleCase()}State();
+  State<$name> createState() => _${name}State();
 }
 
-class _${name.toTitleCase()}State extends State<${name.toTitleCase()}> {
+class _${name}State extends State<$name> {
   @override
   Widget build(BuildContext context) {
     return const Placeholder();
   }
 }
-'''
-      .trim();
+''';
 }
 
-String _consumerWidgetStub(String name) {
+String _consumerWidgetStub(String name, String materialImport) {
+  final imports = [
+    materialImport,
+    "import 'package:flutter_riverpod/flutter_riverpod.dart';",
+  ]..sort();
   return '''
-import 'package:flutter/material.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+${imports.join('\n')}
 
-class ${name.toTitleCase()} extends ConsumerWidget {
-  const ${name.toTitleCase()}({super.key});
+class $name extends ConsumerWidget {
+  const $name({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return const Placeholder();
   }
 }
-   '''
-      .trim();
+''';
 }

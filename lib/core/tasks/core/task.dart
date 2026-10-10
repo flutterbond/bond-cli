@@ -1,35 +1,31 @@
 import 'package:bond_cli/core/utils.dart';
-import 'package:interact/interact.dart';
 import 'package:meta/meta.dart';
 
 import 'actionable.dart';
 
 abstract class Task<T> with Actionable<T> {
-  MultiSpinner? spinners;
+  final _warnings = <String>[];
 
   @override
   Future<T> run() async {
-    final spinner = Spinner(
-      icon: '✅',
-      rightPrompt: (done) =>
-          done ? ' $actionDescription' : ' $actionDescription ...',
-    );
-
-    final SpinnerState? spinnerState;
-    if (spinners != null) {
-      spinnerState = null;
-    } else {
-      spinnerState = spinner.interact();
-    }
+    final progress = logger.progress(actionDescription);
     try {
       final results = await execute();
-      spinnerState?.done();
+      progress.complete();
       return results;
-    } catch (error) {
-      ConsolePrinter.error(error.toString());
+    } catch (_) {
+      progress.fail();
       rethrow;
+    } finally {
+      // Printed after the spinner line so they don't garble it.
+      _warnings.forEach(logger.warn);
+      _warnings.clear();
     }
   }
+
+  /// Queues a warning that is printed once the task's spinner has finished.
+  @protected
+  void warn(String message) => _warnings.add(message);
 
   @protected
   @override
