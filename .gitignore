@@ -1,9 +1,13 @@
 # https://dart.dev/guides/libraries/private-files
 # Created by `dart pub`
 .dart_tool/
-.idea/libraries/Dart_SDK.xml
+build/
 bond_cli
-build/.last_build_id
+
+# IDE files
+.idea/
+*.iml
+.vscode/
 
 # FVM (version pinned in .fvmrc) and local git worktrees
 .fvm/

@@ -1,0 +1,16 @@
+# A .pubignore replaces .gitignore for `dart pub publish`, so the entries that
+# matter from .gitignore are repeated here.
+.dart_tool/
+build/
+/bond_cli
+.fvm/
+.fvmrc
+.worktrees/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# Stray generated project shipped by 0.0.4+3
+gdc/
