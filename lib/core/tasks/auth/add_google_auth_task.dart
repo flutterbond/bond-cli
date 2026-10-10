@@ -13,10 +13,10 @@ class AddGoogleAuthTask extends Tasks {
 
   @override
   List<Task> get tasks => [
-        IntegrateIosTask(),
-        AddDependencyToPubspecTask(),
-        UpdateEnvironmentFilesTask(),
-        CreateConfigurationFileTask(),
-        UpdateConfigsFileTask(),
-      ];
+    IntegrateIosTask(),
+    AddDependencyToPubspecTask(),
+    UpdateEnvironmentFilesTask(),
+    CreateConfigurationFileTask(),
+    UpdateConfigsFileTask(),
+  ];
 }

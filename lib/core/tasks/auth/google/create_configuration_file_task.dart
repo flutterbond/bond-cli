@@ -88,7 +88,7 @@ const googleAuthConfigs = {
       configFile.createSync(recursive: true);
       configFile.writeAsStringSync(content);
     } else {
-      print('google_auth.dart configuration file already exists.');
+      warn('lib/config/google_auth.dart already exists.');
     }
   }
 }

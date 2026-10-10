@@ -27,10 +27,10 @@ class UpdateConfigsFileTask extends Task {
         );
         await configsFile.writeAsString(configsContent);
       } else {
-        print('configs.dart already contains googleAuthConfigs.');
+        warn('configs.dart already contains googleAuthConfigs.');
       }
     } else {
-      throw 'Error: configs.dart not found.';
+      throw Exception('lib/config/configs.dart not found.');
     }
   }
 }
