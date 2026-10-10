@@ -26,7 +26,7 @@ class BondCommandRunner extends CommandRunner<void> {
 ''';
 
   static const _message =
-      'Info from https://github.com/onestudio-co/flutter-bond: #FreePalestine 🇵🇸\n';
+      'Info from https://github.com/flutterbond/flutter-bond: #FreePalestine 🇵🇸\n';
 
   /// Runs the CLI and returns the process exit code instead of throwing.
   Future<int> runAndReportErrors(Iterable<String> args) async {

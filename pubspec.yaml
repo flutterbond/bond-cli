@@ -1,7 +1,7 @@
 name: bond_cli
 description: A CLI tool for efficient Flutter Bond app development, streamlining tasks like project setup and package management.
 version: 0.1.0
-repository: https://github.com/onestudio-co/bond-cli
+repository: https://github.com/flutterbond/bond-cli
 
 environment:
   sdk: ^3.13.0
