@@ -16,9 +16,15 @@ class UpdateConfigsFileTask extends Task {
     if (configsFile.existsSync()) {
       var configsContent = await configsFile.readAsString();
 
-      // Add the import statement if it doesn't exist
-      if (!configsContent.contains("import 'google_auth.dart';")) {
-        configsContent = "import 'google_auth.dart';\n$configsContent";
+      // Add the import after the existing ones if it doesn't exist.
+      const importLine = "import 'google_auth.dart';";
+      if (!configsContent.contains(importLine)) {
+        final lastImport = RegExp(
+          r'^import .*;\n',
+          multiLine: true,
+        ).allMatches(configsContent).lastOrNull;
+        final at = lastImport?.end ?? 0;
+        configsContent = configsContent.replaceRange(at, at, '$importLine\n');
       }
       if (!configsContent.contains('...googleAuthConfigs')) {
         configsContent = configsContent.replaceFirst(

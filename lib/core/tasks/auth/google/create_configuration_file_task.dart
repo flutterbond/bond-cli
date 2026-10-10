@@ -30,7 +30,6 @@ class CreateConfigurationFileTask extends Task {
 /// (env.json, env.staging.json) as shown below:
 ///
 /// ------------------------------------------------------------------------
-
 const googleAuthConfigs = {
   /// ------------------------------------------------------------------------
   /// GOOGLE_CLIENT_ID
