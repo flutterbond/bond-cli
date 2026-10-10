@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:bond_cli/core/validators.dart';
+import 'package:path/path.dart' as p;
 
 import 'logger.dart';
 
@@ -37,5 +38,17 @@ mixin InputResolver<T> on Command<T> {
       if (error == null) return input;
       logger.err(error);
     }
+  }
+
+  /// The current directory, which must be the root of a Flutter project.
+  Directory requireFlutterProject() {
+    final directory = Directory.current;
+    if (!File(p.join(directory.path, 'pubspec.yaml')).existsSync()) {
+      usageException(
+        'Run this command from the root of a Flutter project '
+        '(no pubspec.yaml in ${directory.path}).',
+      );
+    }
+    return directory;
   }
 }

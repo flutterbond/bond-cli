@@ -1,23 +1,30 @@
+import 'dart:io';
+
+import 'package:bond_cli/core/native/android_project.dart';
+import 'package:bond_cli/core/native/flutter_project.dart';
 import 'package:bond_cli/core/tasks/core/task.dart';
-import 'package:native_project_manipulator/platforms/android/android.dart';
 
 class UpdateApplicationIdTask extends Task<void> {
+  final Directory projectDirectory;
   final String applicationId;
-  final AndroidManager androidManager;
 
   UpdateApplicationIdTask({
-    required this.androidManager,
+    required this.projectDirectory,
     required this.applicationId,
   });
 
   @override
-  String get actionDescription => 'Update android application id :'
-      '$applicationId';
+  String get actionDescription =>
+      'Update Android application ID to $applicationId';
 
   @override
   Future<void> execute() async {
-    await androidManager.prepareEnv(
-      applicationId: applicationId,
-    );
+    final android = AndroidProject(projectDirectory);
+    final oldId = android.applicationId;
+    android.setApplicationId(applicationId).forEach(warn);
+    if (oldId != null) {
+      FlutterProject(projectDirectory)
+          .renameAppId(oldId: oldId, newId: applicationId, ios: false);
+    }
   }
 }

@@ -8,10 +8,10 @@ import 'update_command.dart';
 
 class BondCommandRunner extends CommandRunner<void> {
   BondCommandRunner()
-      : super(
-          'bond',
-          'A CLI tool for efficient Flutter Bond app development, streamlining tasks like project setup and package management.',
-        ) {
+    : super(
+        'bond',
+        'A CLI tool for efficient Flutter Bond app development, streamlining tasks like project setup and package management.',
+      ) {
     addCommand(CreateCommand());
     addCommand(UpdateCommand());
     addCommand(AddCommand());

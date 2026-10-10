@@ -1,20 +1,25 @@
+import 'dart:io';
+
+import 'package:bond_cli/core/native/ios_project.dart';
 import 'package:bond_cli/core/tasks/core/task.dart';
-import 'package:native_project_manipulator/platforms/ios/ios_manager.dart';
+import 'package:bond_cli/core/utils.dart';
 
 class UpdateIOSAppNameTaskForIOS extends Task<void> {
-  final IosManager iosManager;
+  final Directory projectDirectory;
   final String appName;
 
   UpdateIOSAppNameTaskForIOS({
-    required this.iosManager,
+    required this.projectDirectory,
     required this.appName,
   });
 
   @override
-  String get actionDescription => 'Update IOS app name to $appName';
+  String get actionDescription => 'Update iOS app name to $appName';
 
   @override
   Future<void> execute() async {
-    await iosManager.updateAppName(appName);
+    IosProject(projectDirectory)
+        .setAppName(displayName: appName, bundleName: appName.toSnakeCase())
+        .forEach(warn);
   }
 }
