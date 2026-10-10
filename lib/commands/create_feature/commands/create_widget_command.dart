@@ -4,40 +4,49 @@ import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
 
 import '../stubs/widget_template.dart';
+import 'feature_option.dart';
 
-class CreateWidgetCommand extends Command<void> with InputResolver {
+class CreateWidgetCommand extends Command<void>
+    with InputResolver, FeatureOption {
   @override
   String get name => 'widget';
 
   @override
-  String get description => 'Create a new Widget.';
+  String get description =>
+      'Create a widget in lib/features/<feature>/presentation/widgets/.';
 
   CreateWidgetCommand() {
     argParser
-      ..addOption('name', abbr: 'n', help: 'Specify the name of the widget.')
-      ..addOption('type',
-          abbr: 't',
-          help:
-              'Specify the type of the widget. Options: [stateless, stateful, consumer]',
-          allowed: ['stateless', 'stateful', 'consumer'],
-          defaultsTo: 'stateless');
+      ..addOption(
+        'name',
+        abbr: 'n',
+        help: 'Specify the name of the widget (PascalCase).',
+      )
+      ..addOption(
+        'type',
+        abbr: 't',
+        help: 'Specify the type of the widget; consumer uses flutter_riverpod.',
+        allowed: ['stateless', 'stateful', 'consumer'],
+        defaultsTo: 'stateless',
+      );
+    addFeatureOption();
   }
 
   @override
   Future<void> run() async {
-    final widgetType = argResults?['type'] as String;
+    final projectDirectory = requireFlutterProject();
+    final widgetType = argResults!['type'] as String;
     final widgetName = resolveInput(
       'name',
       prompt: 'Enter Widget Name:',
-      validators: [
-        NonEmptyValidator(),
-        PascalCaseValidator(),
-      ],
+      validators: [NonEmptyValidator(), PascalCaseValidator()],
     );
+    final feature = resolveFeature(widgetName);
 
     await CreateWidgetTask(
+      projectDirectory: projectDirectory,
       widgetName: widgetName,
-      widgetType: widgetType,
+      feature: feature,
       widgetContent: widgetStub(widgetName, widgetType),
     ).run();
   }

@@ -1,16 +1,14 @@
-import 'package:bond_cli/core/utils.dart';
-
-String widgetStub(String name, String type) {
+String widgetStub(String className, String type) {
   switch (type) {
     case 'stateful':
-      return _statefulWidgetStub(name);
+      return _statefulWidgetStub(className);
 
     case 'consumer':
-      return _consumerWidgetStub(name);
+      return _consumerWidgetStub(className);
 
     case 'stateless':
     default:
-      return _statelessWidgetStub(name);
+      return _statelessWidgetStub(className);
   }
 }
 
@@ -18,52 +16,49 @@ String _statelessWidgetStub(String name) {
   return '''
 import 'package:flutter/material.dart';
 
-class ${name.toTitleCase()} extends StatelessWidget {
-  const ${name.toTitleCase()}({super.key});
-  
+class $name extends StatelessWidget {
+  const $name({super.key});
+
   @override
   Widget build(BuildContext context) {
     return const Placeholder();
   }
 }
-'''
-      .trim();
+''';
 }
 
 String _statefulWidgetStub(String name) {
   return '''
 import 'package:flutter/material.dart';
 
-class ${name.toTitleCase()} extends StatefulWidget {
-  const ${name.toTitleCase()}({super.key});
-  
+class $name extends StatefulWidget {
+  const $name({super.key});
+
   @override
-  State<${name.toTitleCase()}> createState() => _${name.toTitleCase()}State();
+  State<$name> createState() => _${name}State();
 }
 
-class _${name.toTitleCase()}State extends State<${name.toTitleCase()}> {
+class _${name}State extends State<$name> {
   @override
   Widget build(BuildContext context) {
     return const Placeholder();
   }
 }
-'''
-      .trim();
+''';
 }
 
 String _consumerWidgetStub(String name) {
   return '''
 import 'package:flutter/material.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ${name.toTitleCase()} extends ConsumerWidget {
-  const ${name.toTitleCase()}({super.key});
+class $name extends ConsumerWidget {
+  const $name({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return const Placeholder();
   }
 }
-   '''
-      .trim();
+''';
 }

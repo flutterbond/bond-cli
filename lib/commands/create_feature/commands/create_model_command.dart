@@ -4,40 +4,39 @@ import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
 
 import '../stubs/model_template.dart';
+import 'feature_option.dart';
 
-class CreateModelCommand extends Command<void> with InputResolver {
+class CreateModelCommand extends Command<void>
+    with InputResolver, FeatureOption {
   @override
   String get name => 'model';
 
   @override
-  String get description => 'Create a new Model.';
+  String get description =>
+      'Create a json_serializable model in lib/features/<feature>/data/models/.';
 
   CreateModelCommand() {
-    /// Add an option to specify the name of the model.
+    argParser.addOption(
+      'name',
+      abbr: 'n',
+      help: 'Specify the name of the model (PascalCase).',
+    );
+    addFeatureOption();
     argParser
-      ..addOption('name', abbr: 'n', help: 'Specify the name of the model.')
-
-      /// Add a flag to specify if the model should be JsonSerializable.
       ..addFlag(
-        'jsonSerializable',
-        abbr: 'j',
-        help: 'Generate code for Json Serialization',
-        negatable: false,
+        'build-runner',
+        help: 'Run build_runner to generate the .g.dart part.',
+        defaultsTo: true,
       )
-
-      /// Add a flag to specify if the model should be Equatable.
-      ..addFlag(
-        'equatable',
-        abbr: 'e',
-        help: 'Make the model equatable',
-        negatable: false,
-      );
+      // Models are always json_serializable and Equatable (through Model)
+      // now; the old flags are accepted and ignored.
+      ..addFlag('jsonSerializable', abbr: 'j', negatable: false, hide: true)
+      ..addFlag('equatable', abbr: 'e', negatable: false, hide: true);
   }
 
   @override
   Future<void> run() async {
-    final isJsonSerializable = argResults?['jsonSerializable'] as bool? ?? true;
-    final isEquatable = argResults?['equatable'] as bool? ?? true;
+    final projectDirectory = requireFlutterProject();
     final modelName = resolveInput(
       'name',
       prompt: 'Enter Model Name:',
@@ -47,16 +46,14 @@ class CreateModelCommand extends Command<void> with InputResolver {
         NotReservedWordValidator(),
       ],
     );
+    final feature = resolveFeature(modelName);
 
     await CreateModelTasks(
-      modelName: modelName.toSnakeCase(),
-      isJsonSerializable: isJsonSerializable,
-      isEquatable: isEquatable,
-      modelContent: modelStub(
-        modelName.toSnakeCase(),
-        isJsonSerializable,
-        isEquatable,
-      ),
+      projectDirectory: projectDirectory,
+      modelName: modelName,
+      feature: feature,
+      modelContent: modelStub(modelName),
+      runBuildRunner: argResults!['build-runner'] as bool,
     ).run();
   }
 }

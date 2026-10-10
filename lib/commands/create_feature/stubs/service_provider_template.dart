@@ -1,21 +1,22 @@
-import 'package:bond_cli/core/utils.dart';
-
-String serviceProviderStub(String serviceProviderName) {
+/// A bond_core `ServiceProvider` that also decodes the feature's models
+/// through `ResponseDecoding.factories`.
+String serviceProviderStub(String className) {
   return '''
 import 'package:bond_core/bond_core.dart';
 import 'package:get_it/get_it.dart';
 
-class ${serviceProviderName.toTitleCase()}ServiceProvider extends ServiceProvider {
+class $className extends ServiceProvider with ResponseDecoding {
   @override
   Future<void> register(GetIt it) async {
-    /// TODO: implement register
+    // Register the feature's dependencies, e.g.
+    // it.registerFactory(() => PostsApi(it()));
   }
 
   @override
-  T? responseConvert<T>(Map<String, dynamic> json) {
-    /// TODO: implement responseConvert
-    return null;
-  }
+  Map<Type, JsonFactory> get factories => {
+    // Map each model to its JSON factory, e.g.
+    // Post: Post.fromJson,
+  };
 }
 ''';
 }

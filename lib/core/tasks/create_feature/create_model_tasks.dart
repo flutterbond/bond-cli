@@ -1,21 +1,26 @@
+import 'dart:io';
+
 import 'package:bond_cli/core/tasks/core/task.dart';
 import 'package:bond_cli/core/tasks/core/tasks.dart';
+import 'package:bond_cli/core/utils.dart';
+import 'package:path/path.dart' as p;
 
-import 'common_tasks/create_directory_task.dart';
 import 'common_tasks/create_file_task.dart';
 import 'common_tasks/run_build_runner_task.dart';
 
 class CreateModelTasks extends Tasks {
+  final Directory projectDirectory;
   final String modelName;
+  final String feature;
   final String modelContent;
-  final bool isJsonSerializable;
-  final bool isEquatable;
+  final bool runBuildRunner;
 
   CreateModelTasks({
+    required this.projectDirectory,
     required this.modelName,
+    required this.feature,
     required this.modelContent,
-    required this.isJsonSerializable,
-    required this.isEquatable,
+    this.runBuildRunner = true,
   });
 
   @override
@@ -23,12 +28,21 @@ class CreateModelTasks extends Tasks {
 
   @override
   List<Task> get tasks {
-    final modelDirectoryPath = 'lib/$modelName/data/models/';
-    final modelFilePath = '$modelDirectoryPath$modelName.dart';
+    final path = p.posix.join(
+      'lib',
+      'features',
+      feature,
+      'data',
+      'models',
+      '${modelName.toSnakeCase()}.dart',
+    );
     return [
-      CreateDirectoryTask(modelDirectoryPath),
-      CreateFileTask(modelFilePath, modelContent),
-      RunBuildRunnerTask(modelDirectoryPath, modelName),
+      CreateFileTask(projectDirectory, path, modelContent),
+      if (runBuildRunner)
+        RunBuildRunnerTask(
+          projectDirectory,
+          '${p.posix.withoutExtension(path)}.g.dart',
+        ),
     ];
   }
 }
