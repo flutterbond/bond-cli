@@ -51,7 +51,8 @@ DSL / AGP 9, iOS 15, bond_core 0.1.0).
 
 - Model and widget names are converted to snake_case file names properly
   (`UserDetail` -> `user_detail.dart`, class `UserDetail`).
-- `build_runner` receives a working `--build-filter`.
+- `create model` runs a full `build_runner build`. The old `--build-filter` was quoted wrongly and matched
+  nothing; with build_runner 2.16 a filter would also delete the project's other generated files.
 - Every `git`, `flutter` and `build_runner` exit code is checked.
 - `add google_auth` looks for the flavored Firebase files, edits
   `Info.plist` idempotently, and no longer overwrites existing env values.
