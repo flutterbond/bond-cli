@@ -141,6 +141,18 @@ void main() {
       );
     });
 
+    test('reads the display name, but not a build-setting reference', () {
+      expect(IosProject(root).displayName, 'Bond');
+      write(
+        'ios/Runner/Info.plist',
+        _infoPlist.replaceFirst(
+          '<string>Bond</string>',
+          r'<string>$(APP_DISPLAY_NAME)</string>',
+        ),
+      );
+      expect(IosProject(root).displayName, isNull);
+    });
+
     test('renames a display name held in a build setting per flavor', () {
       write(
         'ios/Runner/Info.plist',

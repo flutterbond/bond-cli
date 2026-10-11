@@ -37,7 +37,8 @@ Missing options are prompted for. Other options:
 The project is cloned into `./<project_name>`, renamed (Dart package and
 imports, Android application ID, namespace and Kotlin package, iOS bundle IDs,
 Firebase config IDs, app names; the staging flavor keeps its `.staging`
-suffix), and committed as a fresh git repository.
+suffix), and committed as a fresh git repository. The names and the template
+version are recorded in `bond.yaml`; commit it, `bond upgrade` reads it.
 
 Run these from the root of a Bond project:
 
@@ -58,6 +59,37 @@ Generated files go to `lib/features/<feature>/`: models to `data/models/`
 widgets to `presentation/widgets/`, and service providers to
 `<name>_service_provider.dart`. `--feature` defaults to the snake_case name.
 
+## Upgrading a project
+
+A project is a copy of the template, so template changes (iOS and Android
+config, scripts, tooling) do not arrive with `flutter pub upgrade`. `bond
+upgrade` brings them in, like `git merge` would, even though the project was
+renamed:
+
+```bash
+bond upgrade --dry-run     # what would change, nothing is written
+bond upgrade               # upgrade to the newest template tag, on a new branch
+bond upgrade --to v2.2.0   # or to a specific tag or branch
+```
+
+It renders the template version your project was created from and the new one
+with your project's names, then three-way merges the difference into your
+files, on the branch `bond/upgrade-<version>`. Nothing is committed.
+
+| Your file | Result |
+|---|---|
+| unchanged by you | updated, added or removed like the template |
+| changed by you, and by the template | merged; real conflicts get `<<<<<<<` markers |
+| deleted by you | stays deleted |
+| new in the template, you already have one | the template's is written as `<file>.template` |
+| icons, lockfiles, generated code, Firebase files, `project.pbxproj` | never merged line by line: updated only if you never changed them |
+
+`pubspec.yaml` keeps your `version:`. The command needs a clean git work tree
+(`--allow-dirty` overrides). Projects created before `bond.yaml` existed pass
+the version they started from once: `bond upgrade --from v2.0.0`. Afterwards,
+run `flutter pub upgrade` for the bond_* packages and `dart fix --apply` for
+renamed APIs, resolve the conflicts, and read the template's `MIGRATION.md`.
+
 ## MCP server (Claude Code and other agents)
 
 `bond mcp` starts an MCP server over stdio that teaches coding agents the bond_* packages of a
@@ -71,6 +103,7 @@ project, for the exact versions the project resolves, and scaffolds code the Bon
 | `migration` | migration guides, or one package's changes between two versions |
 | `create_model`, `create_widget`, `create_service_provider` | generators (never overwrite files) |
 | `create_project` | a new project from the flutter-bond template |
+| `upgrade_template` | upgrade a project's template files to a newer version (dry run by default) |
 
 It also serves `bond://package/{name}/{readme|changelog|example}` resources and a `bond_review`
 prompt.
@@ -96,6 +129,7 @@ to refresh the bundled migration guides.
 
 | Bond CLI | Template | Flutter |
 |---|---|---|
+| 0.3.x | `v2.1.0` (default `--ref`); `bond upgrade` for later versions | 3.47.7+ |
 | 0.2.x | `v2.1.0` (default `--ref`; adds the Claude Code MCP setup) | 3.47.7+ |
 | 0.1.x | `v2.0.0` (default `--ref`) | 3.47.7+ |
 | 0.0.4+3 (or 0.1.x with `--ref v1.0.0`) | `v1.0.0` (legacy) | 3.19–3.27 era |

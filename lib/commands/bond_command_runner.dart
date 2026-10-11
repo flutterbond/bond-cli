@@ -6,6 +6,7 @@ import 'add_command.dart';
 import 'create_command.dart';
 import 'mcp_command.dart';
 import 'update_command.dart';
+import 'upgrade_command.dart';
 
 class BondCommandRunner extends CommandRunner<void> {
   BondCommandRunner()
@@ -15,6 +16,7 @@ class BondCommandRunner extends CommandRunner<void> {
       ) {
     addCommand(CreateCommand());
     addCommand(UpdateCommand());
+    addCommand(UpgradeCommand());
     addCommand(AddCommand());
     addCommand(McpCommand());
   }

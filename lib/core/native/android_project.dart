@@ -194,6 +194,21 @@ class AndroidProject {
   String? get applicationId =>
       readGradleProperty(buildFile.readAsStringSync(), 'applicationId');
 
+  /// The launcher label without flavor suffixes (the shortest `app_name` of
+  /// the `strings.xml` files), or null when no string resource defines it.
+  String? get appName {
+    final values = [
+      for (final file in _stringsFiles)
+        ?readStringResource(file.readAsStringSync(), 'app_name'),
+    ];
+    return values.isEmpty ? null : unescapeAndroidString(_shortest(values));
+  }
+
+  Iterable<File> get _stringsFiles => [
+    for (final sourceSet in _sourceSets)
+      File(p.join(sourceSet.path, 'res', 'values', 'strings.xml')),
+  ].where((file) => file.existsSync());
+
   /// Source sets such as `main`, `debug`, `production` and `staging`.
   List<Directory> get _sourceSets {
     final src = Directory(p.join(appDirectory.path, 'src'));
@@ -293,17 +308,9 @@ class AndroidProject {
   /// Returns warnings for parts that could not be updated.
   List<String> setAppName(String appName) {
     final escaped = escapeAndroidString(appName);
-    final resources =
-        [
-              for (final sourceSet in _sourceSets)
-                File(p.join(sourceSet.path, 'res', 'values', 'strings.xml')),
-            ]
-            .where((file) => file.existsSync())
-            .where(
-              (file) =>
-                  readStringResource(file.readAsStringSync(), 'app_name') !=
-                  null,
-            );
+    final resources = _stringsFiles.where(
+      (file) => readStringResource(file.readAsStringSync(), 'app_name') != null,
+    );
 
     if (resources.isNotEmpty) {
       final base = _shortest([

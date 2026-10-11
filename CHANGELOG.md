@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+- `bond upgrade`: brings the template files of a project (iOS/Android config, scripts, tooling)
+  up to a newer flutter-bond version. It renders the version the project was created from and the
+  new one with the project's names, then three-way merges the difference on the new branch
+  `bond/upgrade-<version>`, uncommitted. Conflicts get markers; files added by the template that
+  the project already has are written as `<file>.template`; binary, generated, lockfile and
+  Firebase files are never merged line by line. Options: `--to`, `--from`, `--template-url`,
+  `--dry-run`, `--allow-dirty`.
+- The MCP tool `upgrade_template` (dry run by default) does the same for agents.
+- `bond create project` writes `bond.yaml` (template URL and version, and the names applied); it
+  is how `bond upgrade` knows where a project came from. Older projects pass `--from <version>` once.
+
+### Changed
+- `bond create project` no longer copies the template's `context7.json`.
+
 ## 0.2.0
 
 ### Added

@@ -11,6 +11,7 @@
     "bond create project --projectName <name> --bundleId <ios.bundle.id> [--applicationId <android.id>] [--appName <name>] [--ref v2.1.0] [--template-url <git url or path>].",
     "Generators: bond create model --name UserDetail --feature profile; bond create widget --name ProfileCard --type consumer --feature profile; bond create service_provider --name Profile --feature profile. Files go to lib/features/<feature>/.",
     "bond mcp starts an MCP server (stdio) with the tools packages, package_overview, api, migration, create_model, create_widget, create_service_provider and create_project.",
-    "Install bond_cli with dart install bond_cli, then add {\"command\": \"bond\", \"args\": [\"mcp\"]} to the project's .mcp.json."
+    "Install bond_cli with dart install bond_cli, then add {\"command\": \"bond\", \"args\": [\"mcp\"]} to the project's .mcp.json.",
+    "bond upgrade [--to v2.2.0] [--dry-run] brings a project's template files (iOS/Android config, scripts) up to a newer flutter-bond version on a new git branch. Projects without bond.yaml pass --from <version>."
   ]
 }

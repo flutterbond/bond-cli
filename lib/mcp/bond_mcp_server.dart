@@ -6,6 +6,7 @@ import 'package:dart_mcp/server.dart';
 import 'package:path/path.dart' as p;
 
 import '../core/generators/generators.dart';
+import '../core/upgrade/upgrade_project.dart';
 import '../version.dart';
 import 'api/api_outline.dart';
 import 'api/api_view.dart';
@@ -55,6 +56,7 @@ final class BondMcpServer extends MCPServer
     registerTool(createWidgetTool, _createWidget);
     registerTool(createServiceProviderTool, _createServiceProvider);
     registerTool(createProjectTool, _createProject);
+    registerTool(upgradeTemplateTool, _upgradeTemplate);
     _addResources();
     addPrompt(reviewPrompt, _review);
   }
@@ -78,6 +80,10 @@ final class BondMcpServer extends MCPServer
       'To scaffold code the Bond way use create_model, create_widget, '
       'create_service_provider (they write into the project and never overwrite) '
       'and create_project (clones the flutter-bond template). '
+      'upgrade_template brings a project\'s template files (iOS/Android '
+      'config, scripts, tooling) up to a newer flutter-bond version: run it '
+      'with dryRun (the default), show the report, and apply only after the '
+      'user agrees. '
       'For raw source files or text search inside a package, use the `dart` '
       'MCP server\'s read_package_uris / rip_grep_packages. Every tool accepts '
       'an optional `root` (project directory) when the client has several '
@@ -349,6 +355,75 @@ final class BondMcpServer extends MCPServer
       additionalProperties: false,
     ),
   );
+
+  static final upgradeTemplateTool = Tool(
+    name: 'upgrade_template',
+    title: 'Upgrade the project to a newer flutter-bond template',
+    description:
+        'Merges what changed between the flutter-bond template version the '
+        'project was created from (bond.yaml) and a newer one into the '
+        'project: iOS/Android config, scripts, tooling. Text files are '
+        'three-way merged (conflicts get <<<<<<< markers); binary, generated, '
+        'lockfile and Firebase files are never merged line by line. dryRun '
+        '(default true) only reports. A real run needs a clean git work tree, '
+        'creates the branch bond/upgrade-<ref> and leaves the changes '
+        'uncommitted; afterwards run flutter pub upgrade, dart fix --apply '
+        'and resolve the conflicts.',
+    annotations: ToolAnnotations(
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+    ),
+    inputSchema: Schema.object(
+      properties: {
+        'root': _rootProperty,
+        'to': Schema.string(
+          description: 'Template tag or branch (default: the newest tag).',
+        ),
+        'from': Schema.string(
+          description:
+              'Template version the project was created from. Only needed '
+              'when the project has no bond.yaml.',
+        ),
+        'templateUrl': Schema.string(
+          description:
+              'Git URL or absolute local path of the template '
+              '(default: bond.yaml, else $defaultTemplateUrl).',
+        ),
+        'dryRun': Schema.bool(
+          description: 'Only report what would change (default true).',
+        ),
+        'allowDirty': Schema.bool(
+          description: 'Upgrade despite uncommitted changes (default false).',
+        ),
+      },
+      additionalProperties: false,
+    ),
+  );
+
+  Future<CallToolResult> _upgradeTemplate(CallToolRequest request) =>
+      _guard(() async {
+        final args = request.arguments ?? const <String, Object?>{};
+        final templateUrl = args['templateUrl'] as String?;
+        if (templateUrl != null &&
+            Directory(templateUrl).existsSync() &&
+            !p.isAbsolute(templateUrl)) {
+          throw ToolError('templateUrl must be an absolute path: $templateUrl');
+        }
+        final report = await upgradeProject(
+          project: await _writableProject(request),
+          to: args['to'] as String?,
+          from: args['from'] as String?,
+          templateUrl: templateUrl,
+          dryRun: (args['dryRun'] as bool?) ?? true,
+          allowDirty: (args['allowDirty'] as bool?) ?? false,
+        );
+        return CallToolResult(
+          content: [TextContent(text: report.describe())],
+          structuredContent: report.toJson(),
+        );
+      });
 
   Future<CallToolResult> _createModel(CallToolRequest request) =>
       _guard(() async {
