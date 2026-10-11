@@ -43,12 +43,14 @@ class ApiEntry {
 ///
 /// Only parses (no resolution), so it is fast and works on any package
 /// version; signatures are the declarations' own source text.
+///
+/// A declaration exported by several public libraries is listed once per
+/// library, the package's main library first.
 class ApiOutlineExtractor {
   final _parsed = <String, (DateTime, CompilationUnit)>{};
 
   List<ApiEntry> extract(BondPackage package) {
     final entries = <ApiEntry>[];
-    final seen = <String>{};
     final mainLibrary = 'package:${package.name}/${package.name}.dart';
     final libraries = publicLibraries(package)
       ..sort(
@@ -64,13 +66,16 @@ class ApiOutlineExtractor {
         path: p.join(package.libDir, p.joinAll(relative.split('/'))),
         filter: const _NameFilter(),
         visiting: {},
-        seen: seen,
+        seen: {},
         into: entries,
       );
     }
     return entries;
   }
 
+  /// [visiting] is the current export chain (it only stops cycles): a file
+  /// reached again through another export, maybe with a wider show/hide
+  /// filter, is read again, and [seen] drops the declarations already listed.
   void _collect({
     required BondPackage package,
     required String library,
@@ -82,6 +87,31 @@ class ApiOutlineExtractor {
   }) {
     final normalized = p.normalize(path);
     if (!visiting.add(normalized)) return;
+    try {
+      _collectFile(
+        package: package,
+        library: library,
+        path: normalized,
+        filter: filter,
+        visiting: visiting,
+        seen: seen,
+        into: into,
+      );
+    } finally {
+      visiting.remove(normalized);
+    }
+  }
+
+  void _collectFile({
+    required BondPackage package,
+    required String library,
+    required String path,
+    required _NameFilter filter,
+    required Set<String> visiting,
+    required Set<String> seen,
+    required List<ApiEntry> into,
+  }) {
+    final normalized = path;
     final unit = _parse(normalized);
     if (unit == null) return;
 

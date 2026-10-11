@@ -31,7 +31,7 @@ Missing options are prompted for. Other options:
 |---|---|---|
 | `--app-name` | project name in Title Case | Name on the home screen (Android `strings.xml`, iOS `CFBundleDisplayName`). |
 | `--template-url` | `https://github.com/flutterbond/flutter-bond.git` | Git URL or local path of the template. |
-| `--ref` | `v2.0.0` | Template branch or tag. |
+| `--ref` | `v2.1.0` | Template branch or tag. |
 | `--[no-]pub-get` | on | Run `flutter pub get` in the new project. |
 
 The project is cloned into `./<project_name>`, renamed (Dart package and
@@ -96,6 +96,7 @@ to refresh the bundled migration guides.
 
 | Bond CLI | Template | Flutter |
 |---|---|---|
+| 0.2.x | `v2.1.0` (default `--ref`; adds the Claude Code MCP setup) | 3.47.7+ |
 | 0.1.x | `v2.0.0` (default `--ref`) | 3.47.7+ |
 | 0.0.4+3 (or 0.1.x with `--ref v1.0.0`) | `v1.0.0` (legacy) | 3.19–3.27 era |
 

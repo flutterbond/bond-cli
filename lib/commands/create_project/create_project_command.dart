@@ -7,10 +7,6 @@ import 'package:bond_cli/core/validators.dart';
 import 'package:path/path.dart' as p;
 
 class CreateProjectCommand extends Command<void> with InputResolver {
-  static const defaultTemplateUrl =
-      'https://github.com/flutterbond/flutter-bond.git';
-  static const defaultRef = 'v2.0.0';
-
   @override
   String get description => 'Creates a new Flutter Bond project';
 
@@ -57,7 +53,7 @@ class CreateProjectCommand extends Command<void> with InputResolver {
       ..addOption(
         'ref',
         help: 'Template branch or tag to clone.',
-        defaultsTo: defaultRef,
+        defaultsTo: defaultTemplateRef,
       )
       ..addFlag(
         'pub-get',

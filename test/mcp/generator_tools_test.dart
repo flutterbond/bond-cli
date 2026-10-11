@@ -88,4 +88,62 @@ void main() {
     expect(result.isError, isTrue);
     expect(textOf(result), contains('no pubspec.yaml'));
   });
+
+  test('a symlink inside the roots that points outside is refused', () async {
+    final elsewhere = Directory.systemTemp.createTempSync('bond_mcp_other_');
+    addTearDown(() => elsewhere.deleteSync(recursive: true));
+    File(p.join(elsewhere.path, 'pubspec.yaml'))
+        .writeAsStringSync('name: other\n');
+    final link = Link(p.join(project.path, 'link'))..createSync(elsewhere.path);
+    final client = RootsClient()
+      ..addRoot(Root(uri: project.uri.toString(), name: 'project'));
+    final env = TestEnvironment(client, (c) => BondMcpServer(c));
+    await env.initialize();
+
+    final result = await env.call('create_widget', {
+      'name': 'Card',
+      'root': link.path,
+    });
+
+    expect(result.isError, isTrue);
+    expect(textOf(result), contains('outside the client roots'));
+    expect(Directory(p.join(elsewhere.path, 'lib')).existsSync(), isFalse);
+  });
+
+  test('without client roots, writes stay inside the server project', () async {
+    final elsewhere = Directory.systemTemp.createTempSync('bond_mcp_other_');
+    addTearDown(() => elsewhere.deleteSync(recursive: true));
+    File(p.join(elsewhere.path, 'pubspec.yaml'))
+        .writeAsStringSync('name: other\n');
+    final env = TestEnvironment(
+      PlainClient(),
+      (c) => BondMcpServer(c, projectFallback: project),
+    );
+    await env.initialize();
+
+    final result = await env.call('create_model', {
+      'name': 'User',
+      'root': elsewhere.path,
+    });
+
+    expect(result.isError, isTrue);
+    expect(textOf(result), contains('outside the project'));
+    expect(Directory(p.join(elsewhere.path, 'lib')).existsSync(), isFalse);
+  });
+
+  test('a non-local file URI is a readable error', () async {
+    final env = TestEnvironment(
+      PlainClient(),
+      (c) => BondMcpServer(c, projectFallback: project),
+    );
+    await env.initialize();
+
+    final result = await env.call('create_model', {
+      'name': 'User',
+      'root': 'file://host/x',
+    });
+
+    expect(result.isError, isTrue);
+    expect(textOf(result), 'Not a local file URI: file://host/x');
+  });
 }

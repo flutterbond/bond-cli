@@ -36,6 +36,16 @@ void main(List<String> args) {
       ..writeln("''';")
       ..writeln();
   }
-  File('lib/mcp/docs/bundled_docs.dart').writeAsStringSync(out.toString());
-  stdout.writeln('Wrote lib/mcp/docs/bundled_docs.dart');
+  const output = 'lib/mcp/docs/bundled_docs.dart';
+  File(output).writeAsStringSync(out.toString());
+  // Keep CI's format check green.
+  final format = Process.runSync(Platform.resolvedExecutable, [
+    'format',
+    output,
+  ]);
+  if (format.exitCode != 0) {
+    stderr.write(format.stderr);
+    exit(format.exitCode);
+  }
+  stdout.writeln('Wrote $output');
 }

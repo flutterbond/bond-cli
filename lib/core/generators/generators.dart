@@ -35,6 +35,10 @@ class GeneratorInputError implements Exception {
   String toString() => message;
 }
 
+/// The flutter-bond template `create project` clones by default.
+const defaultTemplateUrl = 'https://github.com/flutterbond/flutter-bond.git';
+const defaultTemplateRef = 'v2.1.0';
+
 /// The widget kinds `create widget` supports.
 const widgetTypes = ['stateless', 'stateful', 'consumer'];
 

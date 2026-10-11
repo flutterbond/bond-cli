@@ -15,6 +15,8 @@
 - The generators return the files they created and the next steps (CLI and MCP share them).
 
 ### Changed
+- `bond create project` clones the flutter-bond `v2.1.0` template by default (it adds the
+  `.mcp.json` setup for Claude Code; app code is the same as `v2.0.0`).
 - `bond create project` no longer depends on the process's current directory internally.
 - `bond create service_provider` prints where to register the provider (`lib/app/app.dart`).
 

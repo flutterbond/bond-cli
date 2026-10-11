@@ -336,10 +336,10 @@ final class BondMcpServer extends MCPServer
         'templateUrl': Schema.string(
           description:
               'Git URL or local path of the template '
-              '(default https://github.com/flutterbond/flutter-bond.git).',
+              '(default $defaultTemplateUrl).',
         ),
         'ref': Schema.string(
-          description: 'Template tag or branch (default v2.0.0).',
+          description: 'Template tag or branch (default $defaultTemplateRef).',
         ),
         'pubGet': Schema.bool(
           description: 'Run `flutter pub get` afterwards (default false).',
@@ -403,10 +403,8 @@ final class BondMcpServer extends MCPServer
             bundleId: args['bundleId'] as String,
             applicationId: args['applicationId'] as String?,
             appName: args['appName'] as String?,
-            templateUrl:
-                (args['templateUrl'] as String?) ??
-                'https://github.com/flutterbond/flutter-bond.git',
-            ref: (args['ref'] as String?) ?? 'v2.0.0',
+            templateUrl: (args['templateUrl'] as String?) ?? defaultTemplateUrl,
+            ref: (args['ref'] as String?) ?? defaultTemplateRef,
             pubGet: (args['pubGet'] as bool?) ?? false,
           ),
         );
@@ -424,20 +422,36 @@ final class BondMcpServer extends MCPServer
     return dir;
   }
 
-  /// Rejects directories outside the client's roots (when it reports roots).
+  /// Rejects directories outside the client's roots or, when the client
+  /// reports no roots, outside the server's project (`--project` or the
+  /// working directory). Symlinks are resolved, so a link inside a root that
+  /// points elsewhere is rejected too.
   Future<void> _requireInsideRoots(Directory dir) async {
-    if (!supportsRoots) return;
-    final clientRoots = [
-      for (final root in await roots) p.normalize(_toPath(root.uri)),
+    final allowed = [
+      if (supportsRoots)
+        for (final root in await roots) _realPath(_toPath(root.uri))
+      else
+        _realPath((projectFallback ?? Directory.current).path),
     ];
-    final path = p.normalize(dir.absolute.path);
-    final inside = clientRoots.any(
+    final path = _realPath(dir.path);
+    final inside = allowed.any(
       (root) => p.equals(root, path) || p.isWithin(root, path),
     );
     if (inside) return;
     throw ToolError(
-      '$path is outside the client roots: ${clientRoots.join(', ')}.',
+      '$path is outside ${supportsRoots ? 'the client roots' : 'the project'}: '
+      '${allowed.join(', ')}.',
     );
+  }
+
+  /// [path] absolute and normalized, with symlinks resolved when it exists.
+  static String _realPath(String path) {
+    final absolute = p.normalize(p.absolute(path));
+    try {
+      return Directory(absolute).resolveSymbolicLinksSync();
+    } on FileSystemException {
+      return absolute;
+    }
   }
 
   static CallToolResult _generated(GeneratorResult result) {
@@ -640,9 +654,16 @@ final class BondMcpServer extends MCPServer
     );
   }
 
-  static String _toPath(String rootOrUri) => rootOrUri.startsWith('file:')
-      ? Uri.parse(rootOrUri).toFilePath()
-      : p.absolute(rootOrUri);
+  static String _toPath(String rootOrUri) {
+    if (!rootOrUri.startsWith('file:')) return p.absolute(rootOrUri);
+    try {
+      return Uri.parse(rootOrUri).toFilePath();
+    } on FormatException {
+      throw ToolError('Not a valid file URI: $rootOrUri');
+    } on UnsupportedError {
+      throw ToolError('Not a local file URI: $rootOrUri');
+    }
+  }
 
   static CallToolResult _text(String text) =>
       CallToolResult(content: [TextContent(text: text)]);
@@ -668,9 +689,11 @@ final class BondMcpServer extends MCPServer
       return _error('${error.message}: ${error.path}');
     } on GeneratorInputError catch (error) {
       return _error(error.message);
+    } on FormatException catch (error) {
+      return _error(error.message);
     } on Exception catch (error) {
       // e.g. "<path> already exists." or a failed git/flutter process.
-      return _error('$error'.replaceFirst('Exception: ', ''));
+      return _error('$error'.replaceFirst(RegExp('^Exception: '), ''));
     }
   }
 

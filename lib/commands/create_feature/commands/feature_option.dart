@@ -15,7 +15,6 @@ mixin FeatureOption<T> on InputResolver<T> {
     );
   }
 
-  /// Returns the snake_case feature, defaulting to [name] in snake_case.
   /// Prints what the developer still has to do after a generator ran.
   void reportFollowUp(GeneratorResult result) {
     for (final line in result.followUp) {
@@ -23,6 +22,7 @@ mixin FeatureOption<T> on InputResolver<T> {
     }
   }
 
+  /// Returns the snake_case feature, defaulting to [name] in snake_case.
   String resolveFeature(String name) {
     final defaultFeature = name.toSnakeCase();
     return resolveInput(

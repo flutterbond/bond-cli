@@ -35,12 +35,23 @@ class McpCommand extends Command<void> {
 
   @override
   Future<void> run() async {
+    final logFile = argResults!['log-file'] as String?;
+    if (logFile != null) {
+      try {
+        File(logFile).writeAsStringSync('');
+      } on FileSystemException catch (error) {
+        usageException(
+          'Cannot write --log-file $logFile: '
+          '${error.osError?.message ?? error.message}',
+        );
+      }
+    }
     // stdout is the JSON-RPC channel: no banner, spinner or log line may reach it.
     logger.level = Level.quiet;
     final project = argResults!['project'] as String?;
     await runBondMcpServer(
       projectFallback: project == null ? null : Directory(project),
-      logFile: argResults!['log-file'] as String?,
+      logFile: logFile,
     );
   }
 }
