@@ -12,7 +12,7 @@ import 'upgrade_report.dart';
 /// [base] is the old version and [theirs] the new one, both rendered with the
 /// project's names (see `TemplateSnapshot`); the project's own files are
 /// "yours". Text files are merged with `git merge-file`; see
-/// [isOwnedFile] for the files that are never merged line by line. With
+/// [ownedKind] for the files that are never merged line by line. With
 /// [dryRun] nothing is written.
 Future<void> mergeTemplates({
   required Directory project,
@@ -84,7 +84,7 @@ Future<void> _mergeFile({
   if (baseBytes != null && _same(baseBytes, theirsBytes)) return;
   if (ours != null && _same(ours, theirsBytes)) return;
 
-  final owned = isOwnedFile(
+  final owned = ownedKind(
     path,
     binary: looksBinary(theirsBytes) || (ours != null && looksBinary(ours)),
   );
@@ -94,8 +94,11 @@ Future<void> _mergeFile({
     if (ours == null) {
       report.added.add(path);
       if (!dryRun) _write(oursFile, theirsBytes, mode: theirs);
-    } else if (owned) {
-      report.kept.add((path: path, reason: 'new in the template, you have it'));
+    } else if (owned != null) {
+      report.kept.add((
+        path: path,
+        reason: '$owned; new in the template, you have one',
+      ));
     } else {
       report.sidecars.add(path);
       if (!dryRun) _write(File('${oursFile.path}.template'), theirsBytes);
@@ -113,11 +116,8 @@ Future<void> _mergeFile({
     if (!dryRun) _write(oursFile, theirsBytes);
     return;
   }
-  if (owned) {
-    report.kept.add((
-      path: path,
-      reason: 'generated, binary or Firebase file; you changed it',
-    ));
+  if (owned != null) {
+    report.kept.add((path: path, reason: '$owned; you changed it'));
     return;
   }
 

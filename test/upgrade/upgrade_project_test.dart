@@ -194,6 +194,22 @@ void main() {
       );
     });
 
+    test('the project README is its own, never merged', () async {
+      await template.release('v1b', files: {'README.md': '# Template\nv1b\n'});
+      // README.md only exists from v1b on: start the project from there.
+      project.deleteSync(recursive: true);
+      project = await createProject(template, workspace, ref: 'v1b');
+      file('README.md').writeAsStringSync('# My App\n');
+      await git(project, ['commit', '--all', '--quiet', '--message', 'readme']);
+      await template.release('v2', files: {'README.md': '# Template\nv2\n'});
+
+      final report = await upgradeProject(project: project);
+
+      expect(report.conflicts, isEmpty);
+      expect(read('README.md'), '# My App\n');
+      expect(report.kept.map((k) => k.path), contains('README.md'));
+    });
+
     test(
       'a file added by the template that the project has is not merged',
       () async {
