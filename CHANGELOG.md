@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.0
+
+### Added
+- `bond mcp`: an MCP server (stdio) for AI coding agents such as Claude Code. It answers from
+  the exact bond_* versions a project resolves (`.dart_tool/package_config.json`):
+  - `packages`, `package_overview` (public libraries, README, example, latest changes),
+    `api` (the public API read from the package source: declarations, constructors, methods,
+    fields, signatures and docs; filter by symbol, paged) and `migration`;
+  - `create_model`, `create_widget`, `create_service_provider` and `create_project`, which
+    write only inside the client's roots and never overwrite files;
+  - resources `bond://package/{name}/{readme|changelog|example}` and the migration guides;
+  - the `bond_review` prompt (review a diff against the Bond conventions).
+- The generators return the files they created and the next steps (CLI and MCP share them).
+
+### Changed
+- `bond create project` clones the flutter-bond `v2.1.0` template by default (it adds the
+  `.mcp.json` setup for Claude Code; app code is the same as `v2.0.0`).
+- `bond create project` no longer depends on the process's current directory internally.
+- `bond create service_provider` prints where to register the provider (`lib/app/app.dart`).
+
 ## 0.1.0
 
 Targets the flutter-bond `v2.0.0` template (Flutter 3.47.7, Android Kotlin

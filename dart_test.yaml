@@ -1,0 +1,4 @@
+tags:
+  # Starts `bond mcp` as a real process (compiles bin/bond.dart first).
+  slow:
+    timeout: 3x

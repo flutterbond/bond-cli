@@ -1,3 +1,4 @@
+import 'package:bond_cli/core/generators/generators.dart';
 import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
 
@@ -12,6 +13,13 @@ mixin FeatureOption<T> on InputResolver<T> {
           'Feature folder under lib/features/ (converted to snake_case). '
           'Defaults to the snake_case name.',
     );
+  }
+
+  /// Prints what the developer still has to do after a generator ran.
+  void reportFollowUp(GeneratorResult result) {
+    for (final line in result.followUp) {
+      logger.info(line);
+    }
   }
 
   /// Returns the snake_case feature, defaulting to [name] in snake_case.

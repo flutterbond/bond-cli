@@ -1,9 +1,8 @@
 import 'package:args/command_runner.dart';
-import 'package:bond_cli/core/tasks/create_feature/create_service_provider_task.dart';
+import 'package:bond_cli/core/generators/generators.dart';
 import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
 
-import '../stubs/service_provider_template.dart';
 import 'feature_option.dart';
 
 class CreateServiceProviderCommand extends Command<void>
@@ -39,14 +38,12 @@ class CreateServiceProviderCommand extends Command<void>
       ],
     ).replaceFirst(RegExp(r'ServiceProvider$'), '');
     final feature = resolveFeature(name);
-    final className = '${name}ServiceProvider';
 
-    await CreateServiceProviderTask(
-      projectDirectory: projectDirectory,
-      serviceProviderName: className,
+    final result = await generateServiceProvider(
+      project: projectDirectory,
+      name: name,
       feature: feature,
-      serviceProviderContent: serviceProviderStub(className),
-    ).run();
-    logger.info('Add $className() to the app providers list to register it.');
+    );
+    reportFollowUp(result);
   }
 }

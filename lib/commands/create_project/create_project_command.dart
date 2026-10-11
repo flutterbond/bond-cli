@@ -1,16 +1,12 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:bond_cli/core/tasks.dart';
+import 'package:bond_cli/core/generators/generators.dart';
 import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
 import 'package:path/path.dart' as p;
 
 class CreateProjectCommand extends Command<void> with InputResolver {
-  static const defaultTemplateUrl =
-      'https://github.com/flutterbond/flutter-bond.git';
-  static const defaultRef = 'v2.0.0';
-
   @override
   String get description => 'Creates a new Flutter Bond project';
 
@@ -57,7 +53,7 @@ class CreateProjectCommand extends Command<void> with InputResolver {
       ..addOption(
         'ref',
         help: 'Template branch or tag to clone.',
-        defaultsTo: defaultRef,
+        defaultsTo: defaultTemplateRef,
       )
       ..addFlag(
         'pub-get',
@@ -88,52 +84,28 @@ class CreateProjectCommand extends Command<void> with InputResolver {
     );
     final templateUrl = argResults!['template-url'] as String;
     final ref = argResults!['ref'] as String;
-
-    final projectName = rawProjectName.toSnakeCase();
     final appName =
-        (argResults!['appName'] as String?) ?? _displayName(rawProjectName);
-    final projectDirectory = Directory(
-      p.join(Directory.current.path, projectName),
+        (argResults!['appName'] as String?) ??
+        projectDisplayName(rawProjectName);
+    logger.info(
+      'Creating "$appName" in '
+      '${p.join(Directory.current.path, rawProjectName.toSnakeCase())}',
     );
-    logger.info('Creating "$appName" in ${projectDirectory.path}');
 
-    await ProjectCloningTask(
-      directory: projectDirectory,
+    final result = await generateProject(
+      parent: Directory.current,
+      projectName: rawProjectName,
+      bundleId: iosBundleId,
+      applicationId: androidApplicationId,
+      appName: appName,
       templateUrl: templateUrl,
       ref: ref,
-    ).run();
-
-    await SetupAndroidProjectTask(
-      projectDirectory: projectDirectory,
-      appName: appName,
-      applicationId: androidApplicationId,
-    ).run();
-
-    await SetupIosProjectTask(
-      projectDirectory: projectDirectory,
-      appName: appName,
-      bundleId: iosBundleId,
-    ).run();
-
-    await SetupFlutterProjectTask(
-      projectDirectory: projectDirectory,
-      projectName: projectName,
       pubGet: argResults!['pub-get'] as bool,
-    ).run();
+    );
 
-    await InitGitRepositoryTask(
-      directory: projectDirectory,
-      message: 'Initial commit from flutter-bond $ref',
-    ).run();
-
-    logger.success('Created $projectName in ${projectDirectory.path}');
-  }
-
-  /// `my_app` -> `My App`; names typed with spaces or capitals are kept.
-  String _displayName(String projectName) {
-    final trimmed = projectName.trim();
-    return trimmed.contains(RegExp(r'[\sA-Z]'))
-        ? trimmed
-        : trimmed.toTitleCase();
+    logger.success('Created ${result.files.single}');
+    for (final line in result.followUp) {
+      logger.info(line);
+    }
   }
 }

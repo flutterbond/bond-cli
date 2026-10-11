@@ -4,6 +4,7 @@ import 'package:mason_logger/mason_logger.dart';
 
 import 'add_command.dart';
 import 'create_command.dart';
+import 'mcp_command.dart';
 import 'update_command.dart';
 
 class BondCommandRunner extends CommandRunner<void> {
@@ -15,6 +16,7 @@ class BondCommandRunner extends CommandRunner<void> {
     addCommand(CreateCommand());
     addCommand(UpdateCommand());
     addCommand(AddCommand());
+    addCommand(McpCommand());
   }
 
   static const _asciiArt = '''
@@ -32,9 +34,12 @@ class BondCommandRunner extends CommandRunner<void> {
   Future<int> runAndReportErrors(Iterable<String> args) async {
     try {
       final argResults = parse(args);
-      logger
-        ..info(lightCyan.wrap(_asciiArt))
-        ..info(lightCyan.wrap(_message));
+      // `bond mcp` speaks JSON-RPC on stdout, so it must not print the banner.
+      if (argResults.command?.name != McpCommand.commandName) {
+        logger
+          ..info(lightCyan.wrap(_asciiArt))
+          ..info(lightCyan.wrap(_message));
+      }
       await runCommand(argResults);
       return ExitCode.success.code;
     } on UsageException catch (error) {
