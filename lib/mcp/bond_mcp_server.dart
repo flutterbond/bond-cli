@@ -1,0 +1,298 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:dart_mcp/server.dart';
+import 'package:path/path.dart' as p;
+
+import '../version.dart';
+import 'docs/bundled_docs.dart';
+import 'docs/package_docs.dart';
+import 'packages/bond_package_locator.dart';
+
+/// An error the client should see as a plain message (no stack trace).
+class ToolError implements Exception {
+  ToolError(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+/// MCP server that teaches an agent the Flutter Bond packages a project uses:
+/// what each package does, its documentation and its upgrade notes, always
+/// for the exact versions the project resolves.
+final class BondMcpServer extends MCPServer
+    with LoggingSupport, ToolsSupport, ResourcesSupport, RootsTrackingSupport {
+  BondMcpServer(
+    super.channel, {
+    this.projectFallback,
+    BondPackageLocator? locator,
+    super.protocolLogSink,
+  }) : locator = locator ?? BondPackageLocator(),
+       super.fromStreamChannel(
+         implementation: Implementation(
+           name: 'bond',
+           title: 'Flutter Bond',
+           version: bondCliVersion,
+         ),
+         instructions: serverInstructions,
+       ) {
+    registerTool(packagesTool, _packages);
+    registerTool(packageOverviewTool, _packageOverview);
+    registerTool(migrationTool, _migration);
+    _addResources();
+  }
+
+  /// Used when the client reports no roots (from `bond mcp --project`).
+  final Directory? projectFallback;
+  final BondPackageLocator locator;
+
+  static const serverInstructions =
+      'Flutter Bond is a Flutter framework: the bond_* packages (bond_core: '
+      'service providers and get_it `sl`; bond_network: BondFire HTTP requests; '
+      'bond_cache; bond_form with Riverpod/GetX/Bloc adapters; '
+      'bond_notifications; bond_app_analytics) and the flutter-bond app '
+      'template. This server answers from the exact package versions the '
+      'current project resolves (.dart_tool/package_config.json). Use '
+      '`packages` to see them, `package_overview` to learn what a package does '
+      'and how to use it, and `migration` for upgrade notes between versions. '
+      'For raw source files or text search inside a package, use the `dart` '
+      'MCP server\'s read_package_uris / rip_grep_packages. Every tool accepts '
+      'an optional `root` (project directory) when the client has several '
+      'roots; run `flutter pub get` first if a project has no package config.';
+
+  static final _rootProperty = Schema.string(
+    description:
+        'Project directory (absolute path or file: URI). Defaults to the '
+        'client root that has a package config.',
+  );
+
+  static final _packageProperty = Schema.string(
+    description: 'Package name, e.g. bond_core or bond_form_riverpod.',
+  );
+
+  static final packagesTool = Tool(
+    name: 'packages',
+    title: 'Bond packages of the project',
+    description:
+        'Lists the bond_* packages the project depends on, with the resolved '
+        'version, description, source (hosted/git/path) and root directory.',
+    annotations: ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+    inputSchema: Schema.object(
+      properties: {'root': _rootProperty},
+      additionalProperties: false,
+    ),
+  );
+
+  static final packageOverviewTool = Tool(
+    name: 'package_overview',
+    title: 'What a Bond package does and how to use it',
+    description:
+        'Returns a bond_* package\'s description, public libraries to import, '
+        'README, example and its latest CHANGELOG sections, for the version '
+        'the project resolves.',
+    annotations: ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+    inputSchema: Schema.object(
+      properties: {
+        'package': _packageProperty,
+        'changelogSections': Schema.int(
+          description:
+              'How many recent CHANGELOG sections to include '
+              '(default 2, 0 for none).',
+          minimum: 0,
+          maximum: 20,
+        ),
+        'root': _rootProperty,
+      },
+      required: ['package'],
+      additionalProperties: false,
+    ),
+  );
+
+  static final migrationTool = Tool(
+    name: 'migration',
+    title: 'Bond upgrade notes',
+    description:
+        'Upgrade notes. Without `package`: the migration guides of the bond_* '
+        'packages and of the flutter-bond template. With `package`: its '
+        'section of the guide and its CHANGELOG between `from` (exclusive) '
+        'and `to` (default: the resolved version).',
+    annotations: ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+    inputSchema: Schema.object(
+      properties: {
+        'package': _packageProperty,
+        'from': Schema.string(
+          description: 'Version upgraded from, e.g. 0.0.22+19.',
+        ),
+        'to': Schema.string(description: 'Version upgraded to, e.g. 0.1.0.'),
+        'root': _rootProperty,
+      },
+      additionalProperties: false,
+    ),
+  );
+
+  Future<CallToolResult> _packages(CallToolRequest request) => _guard(() async {
+    final resolved = await _resolve(request);
+    final data = {
+      'resolvedFrom': resolved.resolvedFrom(),
+      'packages': [for (final package in resolved.packages) package.toJson()],
+    };
+    final text = StringBuffer('Bond packages of ${resolved.projectRoot}:\n');
+    if (resolved.packages.isEmpty) text.writeln('(none)');
+    for (final package in resolved.packages) {
+      text.writeln(
+        '- ${package.name} ${package.version} (${package.source.name}): '
+        '${package.description}',
+      );
+    }
+    return CallToolResult(
+      content: [
+        TextContent(text: text.toString()),
+        TextContent(text: jsonEncode(data)),
+      ],
+      structuredContent: data,
+    );
+  });
+
+  Future<CallToolResult> _packageOverview(CallToolRequest request) =>
+      _guard(() async {
+        final package = await _package(request);
+        final sections = (request.arguments?['changelogSections'] as int?) ?? 2;
+        return _text(packageOverview(package, changelogSections: sections));
+      });
+
+  Future<CallToolResult> _migration(CallToolRequest request) =>
+      _guard(() async {
+        final name = request.arguments?['package'] as String?;
+        final package = name == null ? null : await _package(request);
+        return _text(
+          migrationNotes(
+            package: package,
+            from: request.arguments?['from'] as String?,
+            to: request.arguments?['to'] as String?,
+          ),
+        );
+      });
+
+  void _addResources() {
+    addResource(
+      Resource(
+        uri: 'bond://docs/migration/packages',
+        name: 'Migration guide of the bond_* packages',
+        mimeType: 'text/markdown',
+      ),
+      (request) => _markdown(request.uri, packagesMigrationGuide),
+    );
+    addResource(
+      Resource(
+        uri: 'bond://docs/migration/template',
+        name: 'Migration guide of the flutter-bond template',
+        mimeType: 'text/markdown',
+      ),
+      (request) => _markdown(request.uri, templateMigrationGuide),
+    );
+    addResourceTemplate(
+      ResourceTemplate(
+        uriTemplate: 'bond://package/{name}/{document}',
+        name: 'Bond package document',
+        title: 'README, CHANGELOG or example of a bond_* package',
+        description: 'document is one of: readme, changelog, example.',
+        mimeType: 'text/markdown',
+      ),
+      _readPackageResource,
+    );
+  }
+
+  Future<ReadResourceResult?> _readPackageResource(
+    ReadResourceRequest request,
+  ) async {
+    final uri = Uri.parse(request.uri);
+    if (uri.scheme != 'bond' ||
+        uri.host != 'package' ||
+        uri.pathSegments.length != 2) {
+      return null;
+    }
+    final document = PackageDocument.values.asNameMap()[uri.pathSegments[1]];
+    if (document == null) return null;
+    final resolved = await locator.locate(await projectDirectory(null));
+    final package = resolved.find(uri.pathSegments[0]);
+    if (package == null) return null;
+    final text = readPackageDocument(package, document);
+    if (text == null) return null;
+    return _markdown(request.uri, text);
+  }
+
+  /// The project a request is about: explicit `root` → the first client root
+  /// with a package config → the first client root → `--project` → cwd.
+  Future<Directory> projectDirectory(String? root) async {
+    if (root != null && root.isNotEmpty) {
+      final dir = Directory(_toPath(root));
+      if (!dir.existsSync()) {
+        throw ToolError('Directory not found: ${dir.path}');
+      }
+      return dir;
+    }
+    if (supportsRoots) {
+      final clientRoots = await roots;
+      for (final clientRoot in clientRoots) {
+        final dir = Directory(_toPath(clientRoot.uri));
+        if (BondPackageLocator.findPackageConfigFile(dir) != null) return dir;
+      }
+      if (clientRoots.isNotEmpty) {
+        return Directory(_toPath(clientRoots.first.uri));
+      }
+    }
+    return projectFallback ?? Directory.current;
+  }
+
+  Future<ResolvedBondPackages> _resolve(CallToolRequest request) async =>
+      locator.locate(
+        await projectDirectory(request.arguments?['root'] as String?),
+      );
+
+  Future<BondPackage> _package(CallToolRequest request) async {
+    final name = request.arguments!['package'] as String;
+    final resolved = await _resolve(request);
+    final package = resolved.find(name);
+    if (package != null) return package;
+    final known = resolved.packages.map((p) => p.name).join(', ');
+    throw ToolError(
+      '$name is not a dependency of ${resolved.projectRoot}. '
+      'Bond packages there: ${known.isEmpty ? 'none' : known}.',
+    );
+  }
+
+  static String _toPath(String rootOrUri) => rootOrUri.startsWith('file:')
+      ? Uri.parse(rootOrUri).toFilePath()
+      : p.absolute(rootOrUri);
+
+  static CallToolResult _text(String text) =>
+      CallToolResult(content: [TextContent(text: text)]);
+
+  static ReadResourceResult _markdown(String uri, String text) =>
+      ReadResourceResult(
+        contents: [
+          TextResourceContents(uri: uri, text: text, mimeType: 'text/markdown'),
+        ],
+      );
+
+  /// Turns expected failures into readable tool errors instead of stack traces.
+  static Future<CallToolResult> _guard(
+    Future<CallToolResult> Function() body,
+  ) async {
+    try {
+      return await body();
+    } on ToolError catch (error) {
+      return _error(error.message);
+    } on PackageConfigNotFound catch (error) {
+      return _error(error.toString());
+    } on FileSystemException catch (error) {
+      return _error('${error.message}: ${error.path}');
+    }
+  }
+
+  static CallToolResult _error(String message) =>
+      CallToolResult(isError: true, content: [TextContent(text: message)]);
+}
