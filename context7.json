@@ -10,6 +10,6 @@
     "Install with dart pub global activate bond_cli (requires Dart 3.13 or newer).",
     "bond create project --projectName <name> --bundleId <ios.bundle.id> [--applicationId <android.id>] [--appName <name>] [--ref v2.0.0] [--template-url <git url or path>].",
     "Generators: bond create model --name UserDetail --feature profile; bond create widget --name ProfileCard --type consumer --feature profile; bond create service_provider --name Profile --feature profile. Files go to lib/features/<feature>/.",
-    "bond mcp starts an MCP server (stdio) with the tools packages, package_overview, api, migration, create_model, create_widget, create_service_provider and create_project; add it to .mcp.json as {\"command\": \"bond\", \"args\": [\"mcp\"]}."
+    "bond mcp starts an MCP server (stdio) with the tools packages, package_overview, api, migration, create_model, create_widget, create_service_provider and create_project. Install with dart install bond_cli, then add {\"command\": \"bond\", \"args\": [\"mcp\"]} to .mcp.json."
   ]
 }

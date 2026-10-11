@@ -73,14 +73,20 @@ project, for the exact versions the project resolves, and scaffolds code the Bon
 | `create_project` | a new project from the flutter-bond template |
 
 It also serves `bond://package/{name}/{readme|changelog|example}` resources and a `bond_review`
-prompt. Projects created from the flutter-bond template already register it in `.mcp.json`
-through `tool/mcp/dart.sh`, which runs the Dart of the Flutter version pinned in `.fvmrc`.
-Activate the CLI once with that Dart so the server starts without rebuilding:
+prompt.
 
-```bash
-sh tool/mcp/dart.sh pub global activate bond_cli
-claude mcp get bond
+Install the CLI with `dart install bond_cli` (Dart 3.13 or newer). It compiles `bond` to a native
+executable, so the server starts fast and writes nothing but MCP messages to stdout. Then register
+it in the project's `.mcp.json` and check it with `claude mcp get bond`:
+
+```json
+{"mcpServers": {"bond": {"type": "stdio", "command": "bond", "args": ["mcp"]}}}
 ```
+
+Projects created from the flutter-bond template already register it through `tool/mcp/bond.sh`,
+which finds the installed `bond` even when its folder is not on PATH. Don't start the server with
+`dart pub global run`: pub can print to stdout before the server starts, which breaks the
+connection.
 
 Options: `--project <dir>` (project to answer for when the client sends no roots) and
 `--log-file <path>` (protocol trace). Release checklist: run `dart run tool/sync_mcp_docs.dart`

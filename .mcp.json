@@ -8,7 +8,7 @@
     "bond": {
       "type": "stdio",
       "command": "sh",
-      "args": ["tool/mcp/dart.sh", "run", "bin/bond.dart", "mcp"]
+      "args": ["tool/mcp/dart.sh", "bin/bond.dart", "mcp"]
     }
   }
 }
