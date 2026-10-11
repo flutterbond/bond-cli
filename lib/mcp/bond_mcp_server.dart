@@ -6,6 +6,8 @@ import 'package:dart_mcp/server.dart';
 import 'package:path/path.dart' as p;
 
 import '../version.dart';
+import 'api/api_outline.dart';
+import 'api/api_view.dart';
 import 'docs/bundled_docs.dart';
 import 'docs/package_docs.dart';
 import 'packages/bond_package_locator.dart';
@@ -42,12 +44,14 @@ final class BondMcpServer extends MCPServer
     registerTool(packagesTool, _packages);
     registerTool(packageOverviewTool, _packageOverview);
     registerTool(migrationTool, _migration);
+    registerTool(apiTool, _apiOutline);
     _addResources();
   }
 
   /// Used when the client reports no roots (from `bond mcp --project`).
   final Directory? projectFallback;
   final BondPackageLocator locator;
+  final _api = ApiOutlineExtractor();
 
   static const serverInstructions =
       'Flutter Bond is a Flutter framework: the bond_* packages (bond_core: '
@@ -57,7 +61,9 @@ final class BondMcpServer extends MCPServer
       'template. This server answers from the exact package versions the '
       'current project resolves (.dart_tool/package_config.json). Use '
       '`packages` to see them, `package_overview` to learn what a package does '
-      'and how to use it, and `migration` for upgrade notes between versions. '
+      'and how to use it, `api` for its real public API (classes, constructors, '
+      'methods, fields with their signatures and docs, read from the source; '
+      'filter with `symbol`), and `migration` for upgrade notes between versions. '
       'For raw source files or text search inside a package, use the `dart` '
       'MCP server\'s read_package_uris / rip_grep_packages. Every tool accepts '
       'an optional `root` (project directory) when the client has several '
@@ -131,6 +137,75 @@ final class BondMcpServer extends MCPServer
       },
       additionalProperties: false,
     ),
+  );
+
+  static final apiTool = Tool(
+    name: 'api',
+    title: 'Public API of a Bond package',
+    description:
+        'The public API of a bond_* package read from its source code, for the '
+        'version the project resolves: classes, mixins, enums, extensions, '
+        'typedefs, functions and variables, with constructors, methods and '
+        'fields. Use `symbol` to look up one declaration (e.g. ServiceProvider, '
+        'BondFire, FormStateNotifier) or a member name; results are paged.',
+    annotations: ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+    inputSchema: Schema.object(
+      properties: {
+        'package': _packageProperty,
+        'symbol': Schema.string(
+          description:
+              'Declaration or member name (exact match first, then '
+              'case-insensitive substring). Implies members: true.',
+        ),
+        'library': Schema.string(
+          description:
+              'Only declarations exported by this public library, '
+              'e.g. validator_localizations.dart.',
+        ),
+        'detail': EnumSchema.untitledSingleSelect(
+          values: ['names', 'signatures', 'docs'],
+          defaultValue: 'signatures',
+          description: 'names, signatures (default) or signatures with docs.',
+        ),
+        'members': Schema.bool(
+          description:
+              'Include constructors, methods and fields (default '
+              'false, true when `symbol` is set).',
+        ),
+        'offset': Schema.int(
+          description: 'First declaration (default 0).',
+          minimum: 0,
+        ),
+        'limit': Schema.int(
+          description: 'Declarations per page (default 50).',
+          minimum: 1,
+          maximum: 200,
+        ),
+        'root': _rootProperty,
+      },
+      required: ['package'],
+      additionalProperties: false,
+    ),
+  );
+
+  Future<CallToolResult> _apiOutline(CallToolRequest request) => _guard(
+    () async {
+      final args = request.arguments!;
+      final package = await _package(request);
+      final symbol = args['symbol'] as String?;
+      final page = selectApi(
+        _api.extract(package),
+        symbol: symbol,
+        library: args['library'] as String?,
+        offset: (args['offset'] as int?) ?? 0,
+        limit: (args['limit'] as int?) ?? 50,
+      );
+      final detail =
+          ApiDetail.values.asNameMap()[args['detail']] ?? ApiDetail.signatures;
+      final members =
+          (args['members'] as bool?) ?? (symbol != null && symbol.isNotEmpty);
+      return _text(renderApi(package, page, detail: detail, members: members));
+    },
   );
 
   Future<CallToolResult> _packages(CallToolRequest request) => _guard(() async {
