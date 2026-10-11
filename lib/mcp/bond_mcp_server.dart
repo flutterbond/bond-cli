@@ -27,7 +27,12 @@ class ToolError implements Exception {
 /// what each package does, its documentation and its upgrade notes, always
 /// for the exact versions the project resolves.
 final class BondMcpServer extends MCPServer
-    with LoggingSupport, ToolsSupport, ResourcesSupport, RootsTrackingSupport {
+    with
+        LoggingSupport,
+        ToolsSupport,
+        ResourcesSupport,
+        PromptsSupport,
+        RootsTrackingSupport {
   BondMcpServer(
     super.channel, {
     this.projectFallback,
@@ -51,6 +56,7 @@ final class BondMcpServer extends MCPServer
     registerTool(createServiceProviderTool, _createServiceProvider);
     registerTool(createProjectTool, _createProject);
     _addResources();
+    addPrompt(reviewPrompt, _review);
   }
 
   /// Used when the client reports no roots (from `bond mcp --project`).
@@ -448,6 +454,58 @@ final class BondMcpServer extends MCPServer
     return CallToolResult(
       content: [TextContent(text: text.toString())],
       structuredContent: result.toJson(),
+    );
+  }
+
+  static final reviewPrompt = Prompt(
+    name: 'bond_review',
+    title: 'Review changes against the Flutter Bond conventions',
+    description:
+        'Reviews the current diff of a Flutter Bond project: feature layout, '
+        'service providers, BondFire, Riverpod 3, bond_form, UI and generated code.',
+    arguments: [
+      PromptArgument(
+        name: 'diffCommand',
+        description: 'Command that shows the changes (default: git diff).',
+      ),
+    ],
+  );
+
+  GetPromptResult _review(GetPromptRequest request) {
+    final diff = (request.arguments?['diffCommand'] as String?) ?? 'git diff';
+    return GetPromptResult(
+      description: 'Flutter Bond review',
+      messages: [
+        PromptMessage(
+          role: Role.user,
+          content: Content.text(
+            text:
+                'Review the current changes of this Flutter Bond project. Run '
+                '`$diff` to see them and read the surrounding code, then check:\n'
+                '1. Feature layout: lib/features/<feature>/ with data/ (api.dart, '
+                'models/) and presentation/, a ServiceProvider registered in '
+                'lib/app/app.dart and routes spread in lib/app/routes.dart.\n'
+                '2. bond_core: services registered in ServiceProvider.register and '
+                'resolved with sl<T>(); JSON factories in ResponseDecoding.factories.\n'
+                '3. bond_network: BondFire comes from sl<BondFire>() (never '
+                'BondFire()), every request has .errorFactory(ServerError.fromJson), '
+                '.cache() only for data that may stay on the device.\n'
+                '4. Riverpod 3: .autoDispose providers, ref.mounted checked after '
+                'every await before setting state, disposables created in build() '
+                'and released with ref.onDispose, meaningful Equatable props.\n'
+                '5. bond_form_riverpod: FormStateNotifier with '
+                'NotifierProvider.autoDispose; family forms take their argument '
+                'through the constructor.\n'
+                '6. UI: package:material_ui/material_ui.dart imports, strings in '
+                'every .arb file, layouts that work on phone and tablet and in RTL.\n'
+                '7. Generated files (*.g.dart, lib/l10n) are regenerated, never '
+                'edited by hand.\n'
+                'Use the bond server\'s `api` tool for any bond_* signature you are '
+                'unsure about. Report each finding with file:line, why it matters '
+                'and a concrete fix; report only real issues.',
+          ),
+        ),
+      ],
     );
   }
 

@@ -94,6 +94,29 @@ void main() {
     expect(textOf(noConfig), contains('pub get'));
   });
 
+  test(
+    'the bond_review prompt is listed and fills in the diff command',
+    () async {
+      final env = TestEnvironment(
+        PlainClient(),
+        (c) => server(c, fallback: Directory(project.root)),
+      );
+      await env.initialize();
+
+      final prompts = await env.connection.listPrompts();
+      expect(prompts.prompts.map((p) => p.name), ['bond_review']);
+      final prompt = await env.connection.getPrompt(
+        GetPromptRequest(
+          name: 'bond_review',
+          arguments: {'diffCommand': 'git diff main'},
+        ),
+      );
+      final text = (prompt.messages.single.content as TextContent).text;
+      expect(text, contains('`git diff main`'));
+      expect(text, contains('sl<BondFire>()'));
+    },
+  );
+
   test('the migration guides are served as resources', () async {
     final env = TestEnvironment(
       PlainClient(),
