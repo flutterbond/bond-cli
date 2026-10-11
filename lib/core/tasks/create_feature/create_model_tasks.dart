@@ -1,9 +1,8 @@
 import 'dart:io';
 
+import 'package:bond_cli/core/generators/feature_paths.dart';
 import 'package:bond_cli/core/tasks/core/task.dart';
 import 'package:bond_cli/core/tasks/core/tasks.dart';
-import 'package:bond_cli/core/utils.dart';
-import 'package:path/path.dart' as p;
 
 import 'common_tasks/create_file_task.dart';
 import 'common_tasks/run_build_runner_task.dart';
@@ -28,21 +27,11 @@ class CreateModelTasks extends Tasks {
 
   @override
   List<Task> get tasks {
-    final path = p.posix.join(
-      'lib',
-      'features',
-      feature,
-      'data',
-      'models',
-      '${modelName.toSnakeCase()}.dart',
-    );
+    final path = FeaturePaths.model(feature, modelName);
     return [
       CreateFileTask(projectDirectory, path, modelContent),
       if (runBuildRunner)
-        RunBuildRunnerTask(
-          projectDirectory,
-          '${p.posix.withoutExtension(path)}.g.dart',
-        ),
+        RunBuildRunnerTask(projectDirectory, FeaturePaths.generatedPart(path)),
     ];
   }
 }

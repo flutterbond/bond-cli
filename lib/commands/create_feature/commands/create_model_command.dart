@@ -1,9 +1,8 @@
 import 'package:args/command_runner.dart';
-import 'package:bond_cli/core/tasks.dart';
+import 'package:bond_cli/core/generators/generators.dart';
 import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
 
-import '../stubs/model_template.dart';
 import 'feature_option.dart';
 
 class CreateModelCommand extends Command<void>
@@ -48,12 +47,12 @@ class CreateModelCommand extends Command<void>
     );
     final feature = resolveFeature(modelName);
 
-    await CreateModelTasks(
-      projectDirectory: projectDirectory,
-      modelName: modelName,
+    final result = await generateModel(
+      project: projectDirectory,
+      name: modelName,
       feature: feature,
-      modelContent: modelStub(modelName),
       runBuildRunner: argResults!['build-runner'] as bool,
-    ).run();
+    );
+    reportFollowUp(result);
   }
 }

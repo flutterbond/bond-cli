@@ -1,10 +1,8 @@
 import 'package:args/command_runner.dart';
-import 'package:bond_cli/core/native/flutter_project.dart';
-import 'package:bond_cli/core/tasks/create_feature/create_widget_task.dart';
+import 'package:bond_cli/core/generators/generators.dart';
 import 'package:bond_cli/core/utils.dart';
 import 'package:bond_cli/core/validators.dart';
 
-import '../stubs/widget_template.dart';
 import 'feature_option.dart';
 
 class CreateWidgetCommand extends Command<void>
@@ -44,15 +42,12 @@ class CreateWidgetCommand extends Command<void>
     );
     final feature = resolveFeature(widgetName);
 
-    await CreateWidgetTask(
-      projectDirectory: projectDirectory,
-      widgetName: widgetName,
+    final result = await generateWidget(
+      project: projectDirectory,
+      name: widgetName,
+      type: widgetType,
       feature: feature,
-      widgetContent: widgetStub(
-        widgetName,
-        widgetType,
-        materialUi: FlutterProject(projectDirectory).dependsOn('material_ui'),
-      ),
-    ).run();
+    );
+    reportFollowUp(result);
   }
 }

@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:dart_mcp/server.dart';
 import 'package:path/path.dart' as p;
 
+import '../core/generators/generators.dart';
 import '../version.dart';
 import 'api/api_outline.dart';
 import 'api/api_view.dart';
@@ -45,6 +46,10 @@ final class BondMcpServer extends MCPServer
     registerTool(packageOverviewTool, _packageOverview);
     registerTool(migrationTool, _migration);
     registerTool(apiTool, _apiOutline);
+    registerTool(createModelTool, _createModel);
+    registerTool(createWidgetTool, _createWidget);
+    registerTool(createServiceProviderTool, _createServiceProvider);
+    registerTool(createProjectTool, _createProject);
     _addResources();
   }
 
@@ -64,6 +69,9 @@ final class BondMcpServer extends MCPServer
       'and how to use it, `api` for its real public API (classes, constructors, '
       'methods, fields with their signatures and docs, read from the source; '
       'filter with `symbol`), and `migration` for upgrade notes between versions. '
+      'To scaffold code the Bond way use create_model, create_widget, '
+      'create_service_provider (they write into the project and never overwrite) '
+      'and create_project (clones the flutter-bond template). '
       'For raw source files or text search inside a package, use the `dart` '
       'MCP server\'s read_package_uris / rip_grep_packages. Every tool accepts '
       'an optional `root` (project directory) when the client has several '
@@ -207,6 +215,241 @@ final class BondMcpServer extends MCPServer
       return _text(renderApi(package, page, detail: detail, members: members));
     },
   );
+
+  static final _nameProperty = Schema.string(
+    description: 'Class name in PascalCase.',
+  );
+
+  static final _featureProperty = Schema.string(
+    description:
+        'Feature folder under lib/features/ (snake_case). Defaults to the '
+        'name in snake_case.',
+  );
+
+  static final _writeAnnotations = ToolAnnotations(
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: false,
+  );
+
+  static final createModelTool = Tool(
+    name: 'create_model',
+    title: 'Create a Bond model',
+    description:
+        'Creates a json_serializable model (extends bond_network Model) in '
+        'lib/features/<feature>/data/models/. Run build_runner afterwards '
+        '(or pass runBuildRunner: true, which can take minutes).',
+    annotations: _writeAnnotations,
+    inputSchema: Schema.object(
+      properties: {
+        'name': _nameProperty,
+        'feature': _featureProperty,
+        'runBuildRunner': Schema.bool(
+          description: 'Run `dart run build_runner build` (default false).',
+        ),
+        'root': _rootProperty,
+      },
+      required: ['name'],
+      additionalProperties: false,
+    ),
+  );
+
+  static final createWidgetTool = Tool(
+    name: 'create_widget',
+    title: 'Create a Bond widget',
+    description:
+        'Creates a widget in lib/features/<feature>/presentation/widgets/: '
+        'stateless, stateful or consumer (flutter_riverpod ConsumerWidget).',
+    annotations: _writeAnnotations,
+    inputSchema: Schema.object(
+      properties: {
+        'name': _nameProperty,
+        'type': EnumSchema.untitledSingleSelect(
+          values: widgetTypes,
+          defaultValue: 'stateless',
+          description: 'Widget kind (default stateless).',
+        ),
+        'feature': _featureProperty,
+        'root': _rootProperty,
+      },
+      required: ['name'],
+      additionalProperties: false,
+    ),
+  );
+
+  static final createServiceProviderTool = Tool(
+    name: 'create_service_provider',
+    title: 'Create a Bond service provider',
+    description:
+        'Creates a bond_core ServiceProvider (with ResponseDecoding) in '
+        'lib/features/<feature>/. Register it in lib/app/app.dart afterwards.',
+    annotations: _writeAnnotations,
+    inputSchema: Schema.object(
+      properties: {
+        'name': Schema.string(
+          description: 'e.g. Profile (creates ProfileServiceProvider).',
+        ),
+        'feature': _featureProperty,
+        'root': _rootProperty,
+      },
+      required: ['name'],
+      additionalProperties: false,
+    ),
+  );
+
+  static final createProjectTool = Tool(
+    name: 'create_project',
+    title: 'Create a Flutter Bond project',
+    description:
+        'Clones the flutter-bond template into <parentDir>/<projectName> and '
+        'sets the project name, app name, iOS bundle ID and Android '
+        'application ID (flavors add .staging), then makes the first commit.',
+    annotations: ToolAnnotations(
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    ),
+    inputSchema: Schema.object(
+      properties: {
+        'parentDir': Schema.string(
+          description: 'Existing folder to create the project in.',
+        ),
+        'projectName': Schema.string(description: 'snake_case, e.g. my_app.'),
+        'bundleId': Schema.string(
+          description: 'iOS bundle ID, e.g. com.example.app.',
+        ),
+        'applicationId': Schema.string(
+          description: 'Android application ID (default: the bundle ID).',
+        ),
+        'appName': Schema.string(
+          description:
+              'Name on the home screen (default: project name in Title Case).',
+        ),
+        'templateUrl': Schema.string(
+          description:
+              'Git URL or local path of the template '
+              '(default https://github.com/flutterbond/flutter-bond.git).',
+        ),
+        'ref': Schema.string(
+          description: 'Template tag or branch (default v2.0.0).',
+        ),
+        'pubGet': Schema.bool(
+          description: 'Run `flutter pub get` afterwards (default false).',
+        ),
+      },
+      required: ['parentDir', 'projectName', 'bundleId'],
+      additionalProperties: false,
+    ),
+  );
+
+  Future<CallToolResult> _createModel(CallToolRequest request) =>
+      _guard(() async {
+        final args = request.arguments!;
+        return _generated(
+          await generateModel(
+            project: await _writableProject(request),
+            name: args['name'] as String,
+            feature: args['feature'] as String?,
+            runBuildRunner: (args['runBuildRunner'] as bool?) ?? false,
+          ),
+        );
+      });
+
+  Future<CallToolResult> _createWidget(CallToolRequest request) =>
+      _guard(() async {
+        final args = request.arguments!;
+        return _generated(
+          await generateWidget(
+            project: await _writableProject(request),
+            name: args['name'] as String,
+            type: (args['type'] as String?) ?? 'stateless',
+            feature: args['feature'] as String?,
+          ),
+        );
+      });
+
+  Future<CallToolResult> _createServiceProvider(CallToolRequest request) =>
+      _guard(() async {
+        final args = request.arguments!;
+        return _generated(
+          await generateServiceProvider(
+            project: await _writableProject(request),
+            name: args['name'] as String,
+            feature: args['feature'] as String?,
+          ),
+        );
+      });
+
+  Future<CallToolResult> _createProject(CallToolRequest request) =>
+      _guard(() async {
+        final args = request.arguments!;
+        final parent = Directory(_toPath(args['parentDir'] as String));
+        if (!parent.existsSync()) {
+          throw ToolError('Directory not found: ${parent.path}');
+        }
+        await _requireInsideRoots(parent);
+        return _generated(
+          await generateProject(
+            parent: parent,
+            projectName: args['projectName'] as String,
+            bundleId: args['bundleId'] as String,
+            applicationId: args['applicationId'] as String?,
+            appName: args['appName'] as String?,
+            templateUrl:
+                (args['templateUrl'] as String?) ??
+                'https://github.com/flutterbond/flutter-bond.git',
+            ref: (args['ref'] as String?) ?? 'v2.0.0',
+            pubGet: (args['pubGet'] as bool?) ?? false,
+          ),
+        );
+      });
+
+  /// The project a generator writes into: a Dart project inside the client roots.
+  Future<Directory> _writableProject(CallToolRequest request) async {
+    final dir = await projectDirectory(request.arguments?['root'] as String?);
+    if (!File(p.join(dir.path, 'pubspec.yaml')).existsSync()) {
+      throw ToolError(
+        '${dir.path} is not a Dart/Flutter project (no pubspec.yaml).',
+      );
+    }
+    await _requireInsideRoots(dir);
+    return dir;
+  }
+
+  /// Rejects directories outside the client's roots (when it reports roots).
+  Future<void> _requireInsideRoots(Directory dir) async {
+    if (!supportsRoots) return;
+    final clientRoots = [
+      for (final root in await roots) p.normalize(_toPath(root.uri)),
+    ];
+    final path = p.normalize(dir.absolute.path);
+    final inside = clientRoots.any(
+      (root) => p.equals(root, path) || p.isWithin(root, path),
+    );
+    if (inside) return;
+    throw ToolError(
+      '$path is outside the client roots: ${clientRoots.join(', ')}.',
+    );
+  }
+
+  static CallToolResult _generated(GeneratorResult result) {
+    final text = StringBuffer('Created:\n');
+    for (final file in result.files) {
+      text.writeln('- $file');
+    }
+    if (result.followUp.isNotEmpty) {
+      text.writeln('\nNext:');
+      for (final line in result.followUp) {
+        text.writeln('- $line');
+      }
+    }
+    return CallToolResult(
+      content: [TextContent(text: text.toString())],
+      structuredContent: result.toJson(),
+    );
+  }
 
   Future<CallToolResult> _packages(CallToolRequest request) => _guard(() async {
     final resolved = await _resolve(request);
@@ -365,6 +608,11 @@ final class BondMcpServer extends MCPServer
       return _error(error.toString());
     } on FileSystemException catch (error) {
       return _error('${error.message}: ${error.path}');
+    } on GeneratorInputError catch (error) {
+      return _error(error.message);
+    } on Exception catch (error) {
+      // e.g. "<path> already exists." or a failed git/flutter process.
+      return _error('$error'.replaceFirst('Exception: ', ''));
     }
   }
 
