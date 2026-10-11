@@ -23,6 +23,17 @@ String xmlEscape(String value) => value
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;');
 
+/// Reverses [xmlEscape].
+String xmlUnescape(String value) => value
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&amp;', '&');
+
+/// Reverses `escapeAndroidString`: drops the backslash escapes of a string
+/// resource and unescapes XML, e.g. `Bob\'s` -> `Bob's`.
+String unescapeAndroidString(String value) =>
+    xmlUnescape(value.replaceAllMapped(RegExp(r'\\(.)'), (m) => m[1]!));
+
 /// Rewrites [file] with [edit] and returns whether its content changed.
 bool editFile(File file, String Function(String content) edit) {
   final content = file.readAsStringSync();

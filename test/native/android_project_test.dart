@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:bond_cli/core/native/android_project.dart';
+import 'package:bond_cli/core/native/text_edits.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -80,6 +81,12 @@ void main() {
         contains('applicationId "com.acme"'),
       );
     });
+  });
+
+  test('unescapes what escapeAndroidString escapes', () {
+    for (final value in ["Tom's <App> & Co", r'@home', 'a "b" \\c']) {
+      expect(unescapeAndroidString(escapeAndroidString(value)), value);
+    }
   });
 
   test('sets the app name in strings.xml, escaping XML and quotes', () {
@@ -229,6 +236,12 @@ void main() {
         },
       );
     }
+
+    test('reads the app name without the flavor suffix', () {
+      expect(AndroidProject(root).appName, 'Bond');
+      AndroidProject(root).setAppName("Tom's <App> & Co");
+      expect(AndroidProject(root).appName, "Tom's <App> & Co");
+    });
 
     test('sets the per-flavor app names', () {
       final warnings = AndroidProject(root).setAppName('Acme Shop');

@@ -8,6 +8,8 @@ import 'package:bond_cli/core/tasks.dart';
 import 'package:bond_cli/core/tasks/create_feature/create_service_provider_task.dart';
 import 'package:bond_cli/core/tasks/create_feature/create_widget_task.dart';
 import 'package:bond_cli/core/utils.dart';
+import 'package:bond_cli/core/upgrade/project_record.dart';
+import 'package:bond_cli/core/upgrade/template_snapshot.dart';
 import 'package:bond_cli/core/validators.dart';
 import 'package:path/path.dart' as p;
 
@@ -150,29 +152,26 @@ Future<GeneratorResult> generateProject({
   _validate(androidId, 'Android application ID', [AndroidAppIdValidator()]);
 
   final snakeName = projectName.toSnakeCase();
-  final displayName = appName ?? projectDisplayName(projectName);
+  final identity = ProjectIdentity(
+    name: snakeName,
+    appName: appName ?? projectDisplayName(projectName),
+    bundleId: bundleId,
+    applicationId: androidId,
+  );
   final directory = Directory(p.join(parent.path, snakeName));
 
-  await ProjectCloningTask(
+  await renderTemplate(
     directory: directory,
     templateUrl: templateUrl,
     ref: ref,
-  ).run();
-  await SetupAndroidProjectTask(
-    projectDirectory: directory,
-    appName: displayName,
-    applicationId: androidId,
-  ).run();
-  await SetupIosProjectTask(
-    projectDirectory: directory,
-    appName: displayName,
-    bundleId: bundleId,
-  ).run();
-  await SetupFlutterProjectTask(
-    projectDirectory: directory,
-    projectName: snakeName,
+    identity: identity,
     pubGet: pubGet,
-  ).run();
+  );
+  ProjectRecord(
+    templateUrl: templateUrl,
+    ref: ref,
+    identity: identity,
+  ).write(directory);
   await InitGitRepositoryTask(
     directory: directory,
     message: 'Initial commit from flutter-bond $ref',

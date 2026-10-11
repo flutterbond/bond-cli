@@ -167,6 +167,17 @@ class IosProject {
 
   String? get bundleId => detectBaseBundleId(pbxproj.readAsStringSync());
 
+  /// The home-screen name (`CFBundleDisplayName`), or null when it is missing
+  /// or set from a build setting.
+  String? get displayName {
+    final value = readPlistString(
+      infoPlist.readAsStringSync(),
+      'CFBundleDisplayName',
+    );
+    if (value == null || _isVariable(value)) return null;
+    return xmlUnescape(value);
+  }
+
   /// Firebase configs such as `ios/Production/GoogleService-Info.plist`.
   List<File> get _googleServiceInfoPlists =>
       listFiles(iosDirectory, extensions: ['GoogleService-Info.plist'])
